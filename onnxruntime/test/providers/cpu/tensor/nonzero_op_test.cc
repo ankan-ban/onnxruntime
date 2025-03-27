@@ -77,7 +77,7 @@ TEST(NonZeroOpTest, Scalar) {
   {
     OpTester test{kOpName, kOpVersion};
     test.AddInput<int32_t>("X", {}, {0});
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
     // TensorRT follows ONNX spec where NonZero produces output shape (0, N) instead of (1, N) for scalar input
     test.AddOutput<int64_t>("Y", {0, 0}, {});
 #else
@@ -88,7 +88,7 @@ TEST(NonZeroOpTest, Scalar) {
   {
     OpTester test{kOpName, kOpVersion};
     test.AddInput<int32_t>("X", {}, {1});
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
     // TensorRT follows ONNX spec where NonZero produces output shape (0, N) instead of (1, N) for scalar input
     test.AddOutput<int64_t>("Y", {0, 1}, {});
 #else

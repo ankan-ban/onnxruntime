@@ -50,7 +50,7 @@ extern "C" void ortenv_teardown() {
   ort_env.reset();
 }
 
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
 
 #if defined(_MSC_VER)
 #pragma warning(push)

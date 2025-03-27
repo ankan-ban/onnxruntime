@@ -109,6 +109,7 @@ option(onnxruntime_ENABLE_MICROSOFT_INTERNAL "Use this option to enable/disable 
 
 option(onnxruntime_USE_VITISAI "Build with Vitis-AI" OFF)
 option(onnxruntime_USE_TENSORRT "Build with TensorRT support" OFF)
+option(onnxruntime_USE_NV "Build with TensorRT support" OFF)
 option(onnxruntime_USE_TENSORRT_BUILTIN_PARSER "Use TensorRT builtin parser" OFF)
 option(onnxruntime_ENABLE_LTO "Enable link time optimization" OFF)
 option(onnxruntime_CROSS_COMPILING "Cross compiling onnx runtime" OFF)
@@ -253,6 +254,7 @@ option(onnxruntime_USE_LOCK_FREE_QUEUE "Build with lock-free task queue for thre
 option(onnxruntime_FORCE_GENERIC_ALGORITHMS "Disable optimized arch-specific algorithms. Use only for testing and debugging generic algorithms." OFF)
 
 option(onnxruntime_USE_TENSORRT_INTERFACE "Build ONNXRuntime shared lib which is compatible with TensorRT EP interface" OFF)
+option(onnxruntime_USE_NV_INTERFACE "Build ONNXRuntime shared lib which is compatible with TensorRT EP interface" OFF)
 option(onnxruntime_USE_CUDA_INTERFACE "Build ONNXRuntime shared lib which is compatible with Cuda EP interface" OFF)
 option(onnxruntime_USE_OPENVINO_INTERFACE "Build ONNXRuntime shared lib which is compatible with OpenVINO EP interface" OFF)
 option(onnxruntime_USE_VITISAI_INTERFACE "Build ONNXRuntime shared lib which is compatible with Vitis-AI EP interface" OFF)
@@ -930,6 +932,15 @@ if (onnxruntime_USE_TENSORRT_INTERFACE AND (NOT onnxruntime_USE_TENSORRT))
     list(APPEND ORT_INTERFACE_FLAGS -DUSE_TENSORRT=1)
 endif()
 
+if (onnxruntime_USE_NV)
+    list(APPEND ORT_PROVIDER_FLAGS -DUSE_NV=1)
+    list(APPEND ONNXRUNTIME_PROVIDER_NAMES nv)
+endif()
+
+if (onnxruntime_USE_NV_INTERFACE AND (NOT onnxruntime_USE_NV))
+    list(APPEND ORT_INTERFACE_FLAGS -DUSE_NV=1)
+endif()
+
 if (onnxruntime_USE_RKNPU)
     list(APPEND ORT_PROVIDER_FLAGS -DUSE_RKNPU=1)
     list(APPEND ONNXRUNTIME_PROVIDER_NAMES rknpu)
@@ -947,11 +958,11 @@ if (onnxruntime_USE_JSEP)
     list(APPEND ONNXRUNTIME_PROVIDER_NAMES js)
 endif()
 if (onnxruntime_USE_QNN OR onnxruntime_USE_QNN_INTERFACE)
-    
+
     if(onnxruntime_USE_QNN)
         list(APPEND ORT_PROVIDER_FLAGS -DUSE_QNN=1)
     else()
-        list(APPEND ORT_EXTRA_INTERFACE_FLAGS -DUSE_QNN=1) 
+        list(APPEND ORT_EXTRA_INTERFACE_FLAGS -DUSE_QNN=1)
     endif()
 
     list(APPEND ONNXRUNTIME_PROVIDER_NAMES qnn)

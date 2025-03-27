@@ -2543,7 +2543,7 @@ void test_apex_reduce_sum(
 }
 
 TEST(ReductionOpTest, ReduceSum_apex_matrix_large) {
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
   // Reduction op takes much longer time for TRT 8.2, so we test smaller range of inputs.
   int64_t threshold = 4096;
 #else
@@ -2579,7 +2579,7 @@ TEST(ReductionOpTest, ReduceSum_batch_by_two) {
 }
 
 TEST(ReductionOpTest, ReduceSum_batch_by_seq_by_128) {
-#ifdef USE_TENSORRT
+  #if defined(USE_TENSORRT)  || defined(USE_NV)
   // Reduction op takes much longer time for TRT 8.2, so we test smaller range of inputs.
   int i_max = 8;
 #else
@@ -2609,7 +2609,7 @@ TEST(ReductionOpTest, ReduceSum_bert_selected_batch_size) {
 
 TEST(ReductionOpTest, ReduceSum_apex_more) {
   std::srand(0);
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
   // Reduction op takes much longer time for TRT 8.2, so we test smaller range of inputs.
   int64_t m_max = 8;
   int64_t n_max = 8;

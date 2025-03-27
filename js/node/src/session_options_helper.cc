@@ -23,6 +23,9 @@
 #ifdef USE_TENSORRT
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
 #endif
+#ifdef USE_NV
+#include "core/providers/nv/nv_provider_options.h"
+#endif
 #ifdef USE_COREML
 #include "core/providers/coreml/coreml_provider_factory.h"
 #endif
@@ -121,6 +124,14 @@ void ParseExecutionProviders(const Napi::Array epList, Ort::SessionOptions& sess
       options->device_id = deviceId;
       sessionOptions.AppendExecutionProvider_TensorRT_V2(*options);
       Ort::GetApi().ReleaseTensorRTProviderOptions(options);
+#endif
+#ifdef USE_TENSORRT
+    } else if (name == "nv") {
+      OrtNvProviderOptionsV2* options;
+      Ort::GetApi().CreateNvProviderOptions(&options);
+      options->device_id = deviceId;
+      sessionOptions.AppendExecutionProvider_Nv_V2(*options);
+      Ort::GetApi().ReleaseNvProviderOptions(options);
 #endif
 #ifdef USE_DML
     } else if (name == "dml") {

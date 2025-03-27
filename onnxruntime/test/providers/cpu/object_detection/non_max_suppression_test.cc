@@ -65,7 +65,7 @@ TEST(NonMaxSuppressionOpTest, TwoClasses) {
   test.AddInput<float>("score_threshold", {}, {0.0f});
   // The selected_indices in ORT is sorted by class, whereas in TRT the selected_indices is sorted by score,
 // So it needs to sort the output to pass the output check when there is more than one class using TRT EP.
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
   bool sort_output = true;
 #else
   bool sort_output = false;  // default
@@ -135,8 +135,8 @@ TEST(NonMaxSuppressionOpTest, TwoBatches_TwoClasses) {
   test.AddInput<float>("iou_threshold", {}, {0.8f});
   // The selected_indices in ORT is sorted by class, whereas in TRT the selected_indices is sorted by score,
 // So it needs to sort the output to pass the output check when there is more than one class using TRT EP.
-#ifdef USE_TENSORRT
-  bool sort_output = true;
+#if defined(USE_TENSORRT)  || defined(USE_NV)
+   bool sort_output = true;
 #else
   bool sort_output = false;  // default
 #endif
@@ -318,7 +318,7 @@ TEST(NonMaxSuppressionOpTest, InconsistentBoxAndScoreShapes) {
   test.AddInput<float>("iou_threshold", {}, {0.5f});
   test.AddInput<float>("score_threshold", {}, {0.0f});
   test.AddOutput<int64_t>("selected_indices", {0, 3}, {});
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
   test.Run(OpTester::ExpectResult::kExpectFailure, "");  // TensorRT EP will output different failure message, providing empty string simply skips checking the error message.
 #else
   test.Run(OpTester::ExpectResult::kExpectFailure, "boxes and scores should have same spatial_dimension.");

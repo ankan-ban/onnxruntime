@@ -181,7 +181,7 @@ TEST(ExpandOpTest, Expand_3x1x8_float) {
   test.Run();
 }
 
-#ifndef USE_TENSORRT
+#if !defined(USE_TENSORRT) && !defined(USE_NV)
 TEST(ExpandOpTest, Expand_scalar_float) {
   OpTester test("Expand", 8);
   test.AddInput<float>("data_0", {}, {3.0f});

@@ -2142,11 +2142,13 @@ TEST(CApiTest, io_binding) {
   binding.ClearBoundOutputs();
 }
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_NV)
 TEST(CApiTest, io_binding_cuda) {
   Ort::SessionOptions session_options;
 #ifdef USE_TENSORRT
   Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Tensorrt(session_options, 0));
+#elif USE_NV
+  Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_NV(session_options, 0));
 #else
   OrtCUDAProviderOptionsV2* options;
   Ort::ThrowOnError(Ort::GetApi().CreateCUDAProviderOptions(&options));
@@ -2345,12 +2347,25 @@ TEST(CApiTest, io_binding_qnn_htp_shared) {
 
 #endif  // defined(USE_QNN)
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_DML)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_DML) || define(NV_EP)
 TEST(CApiTest, basic_cuda_graph) {
   const auto& api = Ort::GetApi();
   Ort::SessionOptions session_options;
+#if defined(USE_NV)
+  // Enable cuda graph in TRT provider option.
+  OrtNvProviderOptionsV2* trt_options;
+  ASSERT_TRUE(api.CreateNvProviderOptions(&trt_options) == nullptr);
+  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+      rel_trt_options(trt_options, api.ReleaseNvProviderOptions);
+  std::vector<const char*> keys{"trt_cuda_graph_enable"};
+  std::vector<const char*> values{"1"};
+  ASSERT_TRUE(api.UpdateNvProviderOptions(rel_trt_options.get(), keys.data(), values.data(), keys.size()) == nullptr);
 
-#if defined(USE_TENSORRT)
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+                  static_cast<OrtSessionOptions*>(session_options),
+                  rel_trt_options.get()) == nullptr);
+
+#elif defined(USE_TENSORRT)
   // Enable cuda graph in TRT provider option.
   OrtTensorRTProviderOptionsV2* trt_options;
   ASSERT_TRUE(api.CreateTensorRTProviderOptions(&trt_options) == nullptr);
@@ -2406,7 +2421,7 @@ TEST(CApiTest, basic_cuda_graph) {
 #define cudaMemcpyHostToDevice hipMemcpyHostToDevice
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
   Ort::MemoryInfo info_mem("Hip", OrtAllocatorType::OrtArenaAllocator, 0, OrtMemTypeDefault);
-#elif defined(USE_CUDA) || defined(USE_TENSORRT)
+#elif defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_NV)
   Ort::MemoryInfo info_mem("Cuda", OrtAllocatorType::OrtArenaAllocator, 0, OrtMemTypeDefault);
 #elif defined(USE_DML)
   Ort::MemoryInfo info_mem("DML", OrtAllocatorType::OrtDeviceAllocator, 0, OrtMemTypeDefault);
@@ -2422,7 +2437,7 @@ TEST(CApiTest, basic_cuda_graph) {
 
   ASSERT_NE(input_data.get(), nullptr);
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_NV)
   (void)cudaMemcpy(input_data.get(), x_values.data(), sizeof(float) * x_values.size(), cudaMemcpyHostToDevice);
 #elif defined(USE_DML)
   ComPtr<ID3D12Resource> input_resource;
@@ -2455,7 +2470,7 @@ TEST(CApiTest, basic_cuda_graph) {
   // Check the values against the bound raw memory (needs copying from device to host first)
   std::array<float, 3 * 2> y_values;
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_NV)
   (void)cudaMemcpy(y_values.data(), output_data.get(), sizeof(float) * y_values.size(), cudaMemcpyDeviceToHost);
 #elif defined(USE_DML)
   ComPtr<ID3D12Resource> output_resource;
@@ -2469,7 +2484,7 @@ TEST(CApiTest, basic_cuda_graph) {
   // Replay the captured CUDA graph
   session.Run(Ort::RunOptions(), binding);
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_NV)
   (void)cudaMemcpy(y_values.data(), output_data.get(), sizeof(float) * y_values.size(), cudaMemcpyDeviceToHost);
 #elif defined(USE_DML)
   DownloadDataFromDml(dml_objects, output_resource.Get(), gsl::make_span(output_cpu_bytes, sizeof(float) * y_values.size()));
@@ -2480,7 +2495,7 @@ TEST(CApiTest, basic_cuda_graph) {
   // Change the input and replay the CUDA graph again.
   x_values = {10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f};
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_NV)
   (void)cudaMemcpy(input_data.get(), x_values.data(), sizeof(float) * x_values.size(), cudaMemcpyHostToDevice);
 #elif defined(USE_DML)
   UploadDataToDml(dml_objects, input_resource.Get(), gsl::make_span(reinterpret_cast<const std::byte*>(x_values.data()), sizeof(float) * x_values.size()));
@@ -2490,7 +2505,7 @@ TEST(CApiTest, basic_cuda_graph) {
 
   session.Run(Ort::RunOptions(), binding);
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_NV)
   (void)cudaMemcpy(y_values.data(), output_data.get(), sizeof(float) * y_values.size(), cudaMemcpyDeviceToHost);
 #elif defined(USE_DML)
   DownloadDataFromDml(dml_objects, output_resource.Get(), gsl::make_span(output_cpu_bytes, sizeof(float) * y_values.size()));
@@ -2740,7 +2755,7 @@ TEST(CApiTest, basic_cuda_graph_with_annotation) {
 
 // The following test uses some ops not supported in the reduced ops build
 #ifndef REDUCED_OPS_BUILD
-#if defined(USE_CUDA) || defined(USE_TENSORRT)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_NV)
 TEST(CApiTest, cuda_graph_with_shape_nodes) {
   const auto& api = Ort::GetApi();
 
@@ -3685,6 +3700,258 @@ TEST(CApiTest, ConfigureCudaArenaAndDemonstrateMemoryArenaShrinkage) {
   // (Memory arena for the CPU should not have been disabled)
   //  run_option.AddConfigEntry(kOrtRunOptionsConfigEnableMemoryArenaShrinkage, "cpu:0;gpu:0");
 }
+#endif
+#ifdef USE_NV
+TEST(NvExecutionProviderTest, ShapeTensorTest) {
+  const auto& api = Ort::GetApi();
+
+  // Test input tensor which is shape tensor with explicit trt profile shapes
+  Ort::SessionOptions session_options;
+  OrtNvProviderOptionsV2* nv_options;
+  ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
+  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+      rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
+
+  const char* nv_profile_min_shapes = "data:2x2,shape:4x1";
+  const char* nv_profile_max_shapes = "data:2x2,shape:4x1";
+  const char* nv_profile_opt_shapes = "data:2x2,shape:4x1";
+  std::vector<const char*> keys{"nv_profile_min_shapes", "nv_profile_max_shapes", "nv_profile_opt_shapes"};
+  std::vector<const char*> values{nv_profile_min_shapes, nv_profile_max_shapes, nv_profile_opt_shapes};
+  ASSERT_TRUE(api.UpdateNvProviderOptions(rel_nv_options.get(), keys.data(), values.data(), keys.size()) == nullptr);
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+                  static_cast<OrtSessionOptions*>(session_options),
+                  rel_nv_options.get()) == nullptr);
+
+  auto model_path = ORT_TSTR("testdata/nv_reshape.onnx");
+
+  std::vector<float> input_value_0{1.1f, 1.2f, 1.3f, 1.4f};
+  std::vector<int64_t> input_shape_0{2, 2};
+  std::vector<int64_t> input_value_1{4, 1};
+  std::vector<int64_t> input_shape_1{2};
+
+  std::vector<const char*> input_names{"data", "shape"};
+  Ort::MemoryInfo info("Cpu", OrtDeviceAllocator, 0, OrtMemTypeDefault);
+
+  std::vector<Ort::Value> ort_inputs;
+  ort_inputs.emplace_back(Ort::Value::CreateTensor<float>(info, input_value_0.data(), input_value_0.size(), input_shape_0.data(), input_shape_0.size()));
+  ort_inputs.emplace_back(Ort::Value::CreateTensor<int64_t>(info, input_value_1.data(), input_value_1.size(), input_shape_1.data(), input_shape_1.size()));
+
+  const char* output_names[] = {"reshaped"};
+
+  Ort::Session session(*ort_env, model_path, session_options);
+  session.Run(Ort::RunOptions{}, input_names.data(), ort_inputs.data(), ort_inputs.size(), output_names, countof(output_names));
+
+  // Test input tensor which is shape tensor with implicit trt profile shapes
+  Ort::SessionOptions session_options_2;
+  OrtNvProviderOptionsV2* nv_options_2;
+  ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options_2) == nullptr);
+  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+      rel_nv_options_2(nv_options_2, api.ReleaseNvProviderOptions);
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+                  static_cast<OrtSessionOptions*>(session_options_2),
+                  rel_nv_options_2.get()) == nullptr);
+  Ort::Session session_2(*ort_env, model_path, session_options_2);
+  session_2.Run(Ort::RunOptions{}, input_names.data(), ort_inputs.data(), ort_inputs.size(), output_names, countof(output_names));
+}
+
+TEST(CApiTest, TestExternalCUDAStreamWithIOBinding) {
+  const auto& api = Ort::GetApi();
+  Ort::SessionOptions session_options;
+
+  OrtNvProviderOptionsV2* nv_options;
+  ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
+  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+      rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
+
+  // updating provider option with user provided compute stream
+  cudaStream_t compute_stream = nullptr;
+  void* user_compute_stream = nullptr;
+  cudaStreamCreate(&compute_stream);
+  ASSERT_TRUE(api.UpdateNvProviderOptionsWithValue(rel_nv_options.get(), "user_compute_stream", compute_stream) == nullptr);
+  ASSERT_TRUE(api.GetNvProviderOptionsByName(rel_nv_options.get(), "user_compute_stream", &user_compute_stream) == nullptr);
+  ASSERT_TRUE(user_compute_stream == (void*)compute_stream);
+
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+                  static_cast<OrtSessionOptions*>(session_options),
+                  rel_nv_options.get()) == nullptr);
+
+  Ort::Session session(*ort_env, MODEL_URI, session_options);
+  Ort::MemoryInfo info_cuda("Cuda", OrtAllocatorType::OrtArenaAllocator, 0, OrtMemTypeDefault);
+
+  const std::array<int64_t, 2> x_shape = {3, 2};
+  std::array<float, 3 * 2> x_values = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+
+  /*
+   * Use cudaMallocHost() (pinned memory allocation) to create input/output tensors
+   */
+  float* input_data;
+  cudaMallocHost(&input_data, 3 * 2 * sizeof(float));
+  ASSERT_NE(input_data, nullptr);
+  cudaMemcpy(input_data, x_values.data(), sizeof(float) * x_values.size(), cudaMemcpyHostToDevice);
+
+  std::cout << "pinned memory allocation" << std::endl;
+  std::cout << "input tesnor:" << std::endl;
+  for (int i = 0; i < 6; i++) {
+    std::cout << input_data[i] << std::endl;
+  }
+
+  // Create an OrtValue tensor backed by data on CUDA memory
+  Ort::Value bound_x = Ort::Value::CreateTensor(info_cuda, reinterpret_cast<float*>(input_data), x_values.size(),
+                                                x_shape.data(), x_shape.size());
+
+  const std::array<int64_t, 2> expected_y_shape = {3, 2};
+  std::array<float, 3 * 2> expected_y = {1.0f, 4.0f, 9.0f, 16.0f, 25.0f, 36.0f};
+
+  float* output_data;
+  cudaMallocHost(&output_data, 3 * 2 * sizeof(float));
+  ASSERT_NE(output_data, nullptr);
+
+  // Create an OrtValue tensor backed by data on CUDA memory
+  Ort::Value bound_y = Ort::Value::CreateTensor(info_cuda, reinterpret_cast<float*>(output_data),
+                                                expected_y.size(), expected_y_shape.data(), expected_y_shape.size());
+
+  // Create IoBinding for inputs and outputs.
+  Ort::IoBinding binding(session);
+  binding.BindInput("X", bound_x);
+  binding.BindOutput("Y", bound_y);
+
+  /*
+   * Use cudaMalloc() (pageable memory allocation first and then implicit pinned memory allocation) to create input/output tensors
+   */
+  float* input_data_2;
+  cudaMalloc(&input_data_2, 3 * 2 * sizeof(float));
+  ASSERT_NE(input_data_2, nullptr);
+  cudaMemcpy(input_data_2, x_values.data(), sizeof(float) * x_values.size(), cudaMemcpyHostToDevice);
+
+  // Create an OrtValue tensor backed by data on CUDA memory
+  Ort::Value bound_x_2 = Ort::Value::CreateTensor(info_cuda, reinterpret_cast<float*>(input_data_2), x_values.size(),
+                                                  x_shape.data(), x_shape.size());
+
+  float* output_data_2;
+  cudaMalloc(&output_data_2, 3 * 2 * sizeof(float));
+  ASSERT_NE(output_data_2, nullptr);
+
+  // Create an OrtValue tensor backed by data on CUDA memory
+  Ort::Value bound_y_2 = Ort::Value::CreateTensor(info_cuda, reinterpret_cast<float*>(output_data_2),
+                                                  expected_y.size(), expected_y_shape.data(), expected_y_shape.size());
+
+  // Create IoBinding for inputs and outputs.
+  Ort::IoBinding binding_2(session);
+  binding_2.BindInput("X", bound_x_2);
+  binding_2.BindOutput("Y", bound_y_2);
+
+  // Run with first iobindings
+  session.Run(Ort::RunOptions(), binding);
+
+  // Check the values against the bound raw memory (needs copying from device to host first)
+  std::array<float, 3 * 2> y_values;
+  cudaMemcpy(y_values.data(), output_data, sizeof(float) * y_values.size(), cudaMemcpyDeviceToHost);
+
+  std::cout << "pinned memory allocation" << std::endl;
+  std::cout << "output: " << std::endl;
+  for (auto y : y_values) {
+    std::cout << y << std::endl;
+  }
+  ASSERT_THAT(y_values, ::testing::ContainerEq(expected_y));
+
+  // Run with second iobindings
+  session.Run(Ort::RunOptions(), binding_2);
+
+  // Check the values against the bound raw memory (needs copying from device to host first)
+  cudaMemcpy(y_values.data(), output_data_2, sizeof(float) * y_values.size(), cudaMemcpyDeviceToHost);
+
+  std::cout << "pageable memory allocation" << std::endl;
+  std::cout << "output: " << std::endl;
+  for (auto y : y_values) {
+    std::cout << y << std::endl;
+  }
+  ASSERT_THAT(y_values, ::testing::ContainerEq(expected_y));
+
+  // Clean up
+  binding.ClearBoundInputs();
+  binding.ClearBoundOutputs();
+  binding_2.ClearBoundInputs();
+  binding_2.ClearBoundOutputs();
+
+  cudaFreeHost(input_data);
+  cudaFreeHost(output_data);
+  cudaFree(input_data_2);
+  cudaFree(output_data_2);
+  cudaStreamDestroy(compute_stream);
+}
+
+class CApiNvTest : public testing::Test, public ::testing::WithParamInterface<std::string> {};
+
+// This test uses CreateNvProviderOptions/UpdateNvProviderOptions APIs to configure and create a Nv Execution Provider
+TEST_P(CApiNvTest, TestConfigureNvProviderOptions) {
+  std::string param = GetParam();
+  size_t pos = param.find("=");
+  std::string option_name = param.substr(0, pos);
+  std::string option_value = param.substr(pos + 1);
+  ASSERT_NE(pos, std::string::npos);
+
+  const auto& api = Ort::GetApi();
+  OrtNvProviderOptionsV2* nv_options;
+  OrtAllocator* allocator;
+  char* nv_options_str;
+  ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
+  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)> rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
+
+  const char* engine_cache_path = "./nv_engine_folder";
+
+  std::vector<const char*> keys{"device_id", "has_user_compute_stream", "nv_fp16_enable", "nv_int8_enable", "nv_engine_cache_enable",
+                                "nv_engine_cache_path", option_name.c_str()};
+
+  std::vector<const char*> values{"0", "0", "1", "0", "1",
+                                  engine_cache_path, option_value.c_str()};
+
+  ASSERT_TRUE(api.UpdateNvProviderOptions(rel_nv_options.get(), keys.data(), values.data(), keys.size()) == nullptr);
+
+  ASSERT_TRUE(api.GetAllocatorWithDefaultOptions(&allocator) == nullptr);
+  ASSERT_TRUE(api.GetNvProviderOptionsAsString(rel_nv_options.get(), allocator, &nv_options_str) == nullptr);
+  std::string s(nv_options_str);
+  ASSERT_TRUE(s.find(engine_cache_path) != std::string::npos);
+  ASSERT_TRUE(s.find(param.c_str()) != std::string::npos);
+  ASSERT_TRUE(api.AllocatorFree(allocator, (void*)nv_options_str) == nullptr);
+
+  Ort::SessionOptions session_options;
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(static_cast<OrtSessionOptions*>(session_options), rel_nv_options.get()) == nullptr);
+
+  // simple inference test
+  // prepare inputs
+  std::vector<Input> inputs(1);
+  Input& input = inputs.back();
+  input.name = "X";
+  input.dims = {3, 2};
+  input.values = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+
+  // prepare expected inputs and outputs
+  std::vector<int64_t> expected_dims_y = {3, 2};
+  std::vector<float> expected_values_y = {1.0f, 4.0f, 9.0f, 16.0f, 25.0f, 36.0f};
+  std::basic_string<ORTCHAR_T> model_uri = MODEL_URI;
+
+  // if session creation passes, model loads fine
+  Ort::Session session(*ort_env, model_uri.c_str(), session_options);
+  auto default_allocator = std::make_unique<MockedOrtAllocator>();
+
+  // without preallocated output tensor
+  RunSession(default_allocator.get(),
+             session,
+             inputs,
+             "Y",
+             expected_dims_y,
+             expected_values_y,
+             nullptr);
+
+  struct stat buffer;
+  ASSERT_TRUE(stat(engine_cache_path, &buffer) == 0);
+}
+
+/*
+ * The NvExecutionProviderOptionsTest can be used to test TRT options
+ */
+INSTANTIATE_TEST_SUITE_P(CApiNvTest, CApiNvTest,
+                         ::testing::Values("nv_build_heuristics_enable=1", "nv_sparsity_enable=1", "nv_builder_optimization_level=0", "nv_tactic_sources=-CUDNN,+CUBLAS", "nv_auxiliary_streams=2"));
 #endif
 
 #ifdef USE_TENSORRT

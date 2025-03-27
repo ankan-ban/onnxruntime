@@ -390,6 +390,72 @@ ORT_API(void, OrtApis::ReleaseTensorRTProviderOptions, _Frees_ptr_opt_ OrtTensor
   ORT_UNUSED_PARAMETER(ptr);
 }
 
+
+ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv,
+  _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptions* nv_options) {
+ORT_UNUSED_PARAMETER(options);
+ORT_UNUSED_PARAMETER(nv_options);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2,
+  _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptionsV2* nv_options) {
+ORT_UNUSED_PARAMETER(options);
+ORT_UNUSED_PARAMETER(nv_options);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::CreateNvProviderOptions, _Outptr_ OrtNvProviderOptionsV2** out) {
+ORT_UNUSED_PARAMETER(out);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptions,
+  _Inout_ OrtNvProviderOptionsV2* nv_options,
+  _In_reads_(num_keys) const char* const* provider_options_keys,
+  _In_reads_(num_keys) const char* const* provider_options_values,
+  size_t num_keys) {
+ORT_UNUSED_PARAMETER(nv_options);
+ORT_UNUSED_PARAMETER(provider_options_keys);
+ORT_UNUSED_PARAMETER(provider_options_values);
+ORT_UNUSED_PARAMETER(num_keys);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsAsString,
+  _In_ const OrtNvProviderOptionsV2* nv_options,
+  _Inout_ OrtAllocator* allocator,
+  _Outptr_ char** ptr) {
+ORT_UNUSED_PARAMETER(nv_options);
+ORT_UNUSED_PARAMETER(allocator);
+ORT_UNUSED_PARAMETER(ptr);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptionsWithValue,
+  _Inout_ OrtNvProviderOptionsV2* nv_options,
+  _In_ const char* key,
+  _In_ void* value) {
+ORT_UNUSED_PARAMETER(nv_options);
+ORT_UNUSED_PARAMETER(key);
+ORT_UNUSED_PARAMETER(value);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsByName,
+  _In_ const OrtNvProviderOptionsV2* nv_options,
+  _In_ const char* key,
+  _Outptr_ void** ptr) {
+ORT_UNUSED_PARAMETER(nv_options);
+ORT_UNUSED_PARAMETER(key);
+ORT_UNUSED_PARAMETER(ptr);
+return CreateNotEnabledStatus("Nv");
+}
+
+ORT_API(void, OrtApis::ReleaseNvProviderOptions, _Frees_ptr_opt_ OrtNvProviderOptionsV2* ptr) {
+ORT_UNUSED_PARAMETER(ptr);
+}
+
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_MIGraphX,
                     _In_ OrtSessionOptions* options, _In_ const OrtMIGraphXProviderOptions* migraphx_options) {
   ORT_UNUSED_PARAMETER(options);
@@ -511,4 +577,6 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_VitisAI,
   ORT_UNUSED_PARAMETER(num_keys);
   return CreateNotEnabledStatus("VitisAI");
 }
+
+
 #endif

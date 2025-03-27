@@ -122,6 +122,9 @@ struct OrtStatus {
 #ifdef USE_TENSORRT
 #include "core/providers/tensorrt/tensorrt_provider_factory.h"
 #endif
+#ifdef USE_NV
+#include "core/providers/nv/nv_provider_factory.h"
+#endif
 #ifdef USE_MIGRAPHX
 #include "core/providers/migraphx/migraphx_provider_factory.h"
 #endif
@@ -170,6 +173,13 @@ extern onnxruntime::ArenaExtendStrategy arena_extend_strategy;
 namespace onnxruntime {
 ProviderInfo_TensorRT* TryGetProviderInfo_TensorRT();
 ProviderInfo_TensorRT& GetProviderInfo_TensorRT();
+}  // namespace onnxruntime
+#endif
+
+#ifdef USE_NV
+namespace onnxruntime {
+ProviderInfo_TensorRT* TryGetProviderInfo_Nv();
+ProviderInfo_TensorRT& GetProviderInfo_Nv();
 }  // namespace onnxruntime
 #endif
 

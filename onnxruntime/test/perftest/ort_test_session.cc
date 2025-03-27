@@ -13,6 +13,7 @@
 #include <core/session/onnxruntime_cxx_api.h>
 #include "core/session/onnxruntime_session_options_config_keys.h"
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
+#include "core/providers/nv/nv_provider_options.h"
 #include "core/providers/dnnl/dnnl_provider_options.h"
 #include <assert.h>
 #include "providers.h"
@@ -191,6 +192,49 @@ OnnxRuntimeTestSession::OnnxRuntimeTestSession(Ort::Env& env, std::random_device
 #else
     ORT_THROW("TensorRT is not supported in this build\n");
 #endif
+} else if (provider_name_ == onnxruntime::kNvExecutionProvider) {
+  #ifdef USE_NV
+      const auto& api = Ort::GetApi();
+      OrtNvProviderOptionsV2* nv_options;
+      Ort::ThrowOnError(api.CreateNvProviderOptions(&nv_options));
+      std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)> rel_trt_options(
+          nv_options, api.ReleaseNvProviderOptions);
+      std::vector<const char*> option_keys, option_values;
+      // used to keep all option keys and value strings alive
+      std::list<std::string> buffer;
+
+  #ifdef _MSC_VER
+      std::string ov_string = ToUTF8String(performance_test_config.run_config.ep_runtime_config_string);
+  #else
+      std::string ov_string = performance_test_config.run_config.ep_runtime_config_string;
+  #endif
+      ParseSessionConfigs(ov_string, provider_options);
+      for (const auto& provider_option : provider_options) {
+        option_keys.push_back(provider_option.first.c_str());
+        option_values.push_back(provider_option.second.c_str());
+      }
+      Ort::Status status(api.UpdateNvProviderOptions(nv_options,
+                                                           option_keys.data(), option_values.data(), option_keys.size()));
+      if (!status.IsOK()) {
+        OrtAllocator* allocator;
+        char* options;
+        Ort::ThrowOnError(api.GetAllocatorWithDefaultOptions(&allocator));
+        Ort::ThrowOnError(api.GetNvProviderOptionsAsString(nv_options, allocator, &options));
+        ORT_THROW("[ERROR] [Nv] Configuring the CUDA options failed with message: ", status.GetErrorMessage(),
+                  "\nSupported options are:\n", options);
+      }
+
+      session_options.AppendExecutionProvider_Nv_V2(*nv_options);
+
+      OrtCUDAProviderOptions cuda_options;
+      cuda_options.device_id = nv_options->device_id;
+      cuda_options.cudnn_conv_algo_search = static_cast<OrtCudnnConvAlgoSearch>(performance_test_config.run_config.cudnn_conv_algo);
+      cuda_options.do_copy_in_default_stream = !performance_test_config.run_config.do_cuda_copy_in_separate_stream;
+      // TODO: Support arena configuration for users of perf test
+      session_options.AppendExecutionProvider_CUDA(cuda_options);
+  #else
+      ORT_THROW("Nv is not supported in this build\n");
+  #endif
   } else if (provider_name_ == onnxruntime::kQnnExecutionProvider) {
 #ifdef USE_QNN
 #ifdef _MSC_VER

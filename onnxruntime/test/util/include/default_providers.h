@@ -25,7 +25,10 @@ std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Rknpu(
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Rocm(const OrtROCMProviderOptions* provider_options);
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Tensorrt(const OrtTensorRTProviderOptions* params);
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Tensorrt(const OrtTensorRTProviderOptionsV2* params);
+std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Nv(const OrtNvProviderOptions* params);
+std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Nv(const OrtNvProviderOptionsV2* params);
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_Cann(const OrtCANNProviderOptions* provider_options);
+
 
 // EP for internal testing
 std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory_InternalTesting(
@@ -44,8 +47,11 @@ std::unique_ptr<IExecutionProvider> DefaultDnnlExecutionProvider();
 std::unique_ptr<IExecutionProvider> DnnlExecutionProviderWithOptions(const OrtDnnlProviderOptions* provider_options);
 // std::unique_ptr<IExecutionProvider> DefaultTvmExecutionProvider();
 std::unique_ptr<IExecutionProvider> DefaultTensorrtExecutionProvider();
+std::unique_ptr<IExecutionProvider> DefaultNvExecutionProvider();
 std::unique_ptr<IExecutionProvider> TensorrtExecutionProviderWithOptions(const OrtTensorRTProviderOptions* params);
 std::unique_ptr<IExecutionProvider> TensorrtExecutionProviderWithOptions(const OrtTensorRTProviderOptionsV2* params);
+std::unique_ptr<IExecutionProvider> NvExecutionProviderWithOptions(const OrtNvProviderOptions* params);
+std::unique_ptr<IExecutionProvider> NvExecutionProviderWithOptions(const OrtNvProviderOptionsV2* params);
 std::unique_ptr<IExecutionProvider> DefaultMIGraphXExecutionProvider();
 std::unique_ptr<IExecutionProvider> MIGraphXExecutionProviderWithOptions(const OrtMIGraphXProviderOptions* params);
 std::unique_ptr<IExecutionProvider> OpenVINOExecutionProviderWithOptions(const ProviderOptions* params, const SessionOptions* session_options = nullptr);

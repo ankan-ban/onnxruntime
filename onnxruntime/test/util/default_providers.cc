@@ -70,6 +70,53 @@ std::unique_ptr<IExecutionProvider> TensorrtExecutionProviderWithOptions(const O
   return nullptr;
 }
 
+std::unique_ptr<IExecutionProvider> DefaultNvExecutionProvider() {
+  #ifdef USE_NV
+    OrtNvProviderOptions params{
+        0,
+        0,
+        nullptr,
+        1000,
+        1,
+        1 << 30,
+        0,
+        0,
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        0};
+    if (auto factory = NvProviderFactoryCreator::Create(&params))
+      return factory->CreateProvider();
+  #endif
+    return nullptr;
+  }
+
+  std::unique_ptr<IExecutionProvider> NvExecutionProviderWithOptions(const OrtNvProviderOptions* params) {
+  #ifdef USE_NV
+    if (auto factory = NvProviderFactoryCreator::Create(params))
+      return factory->CreateProvider();
+  #else
+    ORT_UNUSED_PARAMETER(params);
+  #endif
+    return nullptr;
+  }
+
+  std::unique_ptr<IExecutionProvider> NvExecutionProviderWithOptions(const OrtNvProviderOptionsV2* params) {
+  #ifdef USE_NV
+    if (auto factory = NvProviderFactoryCreator::Create(params))
+      return factory->CreateProvider();
+  #else
+    ORT_UNUSED_PARAMETER(params);
+  #endif
+    return nullptr;
+  }
+
 std::unique_ptr<IExecutionProvider> DefaultMIGraphXExecutionProvider() {
 #ifdef USE_MIGRAPHX
   OrtMIGraphXProviderOptions params{

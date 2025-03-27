@@ -9,6 +9,9 @@
 #include "test/util/include/scoped_env_vars.h"
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
 #include "core/providers/tensorrt/tensorrt_execution_provider_utils.h"
+
+#include "core/providers/nv/nv_provider_options.h"
+#include "core/providers/nv/nv_execution_provider_utils.h"
 #include <string>
 #include <thread>
 #include <filesystem>

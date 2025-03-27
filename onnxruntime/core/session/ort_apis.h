@@ -533,4 +533,17 @@ ORT_API_STATUS_IMPL(RunOptionsAddActiveLoraAdapter, _Inout_ OrtRunOptions* optio
 
 ORT_API_STATUS_IMPL(SetEpDynamicOptions, _Inout_ OrtSession* sess, _In_reads_(kv_len) const char* const* keys,
                     _In_reads_(kv_len) const char* const* values, _In_ size_t kv_len);
+ORT_API_STATUS_IMPL(SessionOptionsAppendExecutionProvider_Nv,
+                        _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptions* tensorrt_options);
+ORT_API_STATUS_IMPL(SessionOptionsAppendExecutionProvider_Nv_V2,
+                        _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptionsV2* nv_options);
+ORT_API_STATUS_IMPL(CreateNvProviderOptions, _Outptr_ OrtNvProviderOptionsV2** out);
+ORT_API_STATUS_IMPL(UpdateNvProviderOptions, _Inout_ OrtNvProviderOptionsV2* nv_options,
+                        _In_reads_(num_keys) const char* const* provider_options_keys,
+                        _In_reads_(num_keys) const char* const* provider_options_values,
+                        size_t num_keys);
+ORT_API_STATUS_IMPL(GetNvProviderOptionsAsString, _In_ const OrtNvProviderOptionsV2* nv_options, _Inout_ OrtAllocator* allocator, _Outptr_ char** ptr);
+ORT_API(void, ReleaseNvProviderOptions, _Frees_ptr_opt_ OrtNvProviderOptionsV2*);
+ORT_API_STATUS_IMPL(UpdateNvProviderOptionsWithValue, _Inout_ OrtNvProviderOptionsV2* nv_options, _In_ const char* key, _In_ void* value);
+ORT_API_STATUS_IMPL(GetNvProviderOptionsByName, _In_ const OrtNvProviderOptionsV2* nv_options, _In_ const char* key, _Outptr_ void** ptr);
 }  // namespace OrtApis

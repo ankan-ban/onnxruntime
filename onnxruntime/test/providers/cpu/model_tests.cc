@@ -18,6 +18,7 @@
 #include "core/session/inference_session.h"
 #include "core/session/ort_env.h"
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
+#include "core/providers/nv/nv_provider_options.h"
 #include "asserts.h"
 #include <core/platform/path_lib.h>
 #include "default_providers.h"
@@ -408,6 +409,7 @@ static constexpr ORT_STRING_VIEW opset18 = ORT_TSTR("opset18");
 
 static constexpr ORT_STRING_VIEW provider_name_cpu = ORT_TSTR("cpu");
 static constexpr ORT_STRING_VIEW provider_name_tensorrt = ORT_TSTR("tensorrt");
+static constexpr ORT_STRING_VIEW provider_name_nv = ORT_TSTR("nv");
 #ifdef USE_MIGRAPHX
 static constexpr ORT_STRING_VIEW provider_name_migraphx = ORT_TSTR("migraphx");
 #endif
@@ -444,6 +446,10 @@ static constexpr ORT_STRING_VIEW provider_name_dml = ORT_TSTR("dml");
   // The other EPs can choose which opsets to test.
   // If an EP doesn't have any CI build pipeline, then there is no need to specify any opset.
 #ifdef USE_TENSORRT
+  // tensorrt: only enable opset 12 to 17 of onnx tests
+  provider_names[provider_name_tensorrt] = {opset12, opset14, opset15, opset16, opset17};
+#endif
+#ifdef USE_NV
   // tensorrt: only enable opset 12 to 17 of onnx tests
   provider_names[provider_name_tensorrt] = {opset12, opset14, opset15, opset16, opset17};
 #endif

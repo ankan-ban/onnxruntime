@@ -644,10 +644,11 @@ void BaseTester::RunWithConfig(size_t* number_of_pre_packed_weights_counter,
       // synthetic EP name for testing CoreML EP with ML Program
       constexpr const char* kCoreMLExecutionProviderMLProgram = "CoreMLExecutionProvider_MLProgram";
 
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
       // only run trt ep to reduce test time
       static const std::string all_provider_types[] = {
           kTensorrtExecutionProvider,
+          kNvExecutionProvider,
       };
 #else
       static const std::string all_provider_types[] = {
@@ -773,7 +774,7 @@ void BaseTester::RunWithConfig(size_t* number_of_pre_packed_weights_counter,
         cur_provider = "not set";
       }
 
-#ifdef USE_TENSORRT
+#if defined(USE_TENSORRT)  || defined(USE_NV)
       // We are allowing tests to be run with only TensorRT EP, but TensorRT EP may not support all tests and may be in excluded providers list.
       // So, no registered EPs were able to run the model is okay for this situation.
       ORT_UNUSED_PARAMETER(has_run);

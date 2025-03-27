@@ -354,6 +354,20 @@ std::unique_ptr<IDataTransfer> CreateGPUDataTransfer() {
 }
 #endif
 
+#ifdef  USE_NV
+std::unique_ptr<IAllocator> CreateCUDAAllocator(int16_t device_id, const char* name) {
+  return g_host->CreateCUDAAllocator(device_id, name);
+}
+
+std::unique_ptr<IAllocator> CreateCUDAPinnedAllocator(const char* name) {
+  return g_host->CreateCUDAPinnedAllocator(name);
+}
+
+std::unique_ptr<IDataTransfer> CreateGPUDataTransfer() {
+  return g_host->CreateGPUDataTransfer();
+}
+#endif
+
 #ifdef USE_MIGRAPHX
 std::unique_ptr<IAllocator> CreateMIGraphXAllocator(int16_t device_id, const char* name) {
   return g_host->CreateMIGraphXAllocator(device_id, name);

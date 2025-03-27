@@ -1975,6 +1975,7 @@ common::Status InferenceSession::Initialize() {
       // Then the ROCM EP is cached for triggering a ReplayGraph() in Run().
       //
       std::vector<const char*> graph_support_ep_list = {
+          onnxruntime::kNvExecutionProvider,
           onnxruntime::kTensorrtExecutionProvider,
           onnxruntime::kCudaExecutionProvider,
           onnxruntime::kRocmExecutionProvider,

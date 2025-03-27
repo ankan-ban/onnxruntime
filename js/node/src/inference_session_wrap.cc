@@ -326,6 +326,9 @@ Napi::Value InferenceSessionWrap::ListSupportedBackends(const Napi::CallbackInfo
 #ifdef USE_TENSORRT
   result.Set(result.Length(), createObject("tensorrt", false));
 #endif
+#ifdef USE_NV
+  result.Set(result.Length(), createObject("nv", false));
+#endif
 #ifdef USE_COREML
   result.Set(result.Length(), createObject("coreml", true));
 #endif

@@ -47,7 +47,7 @@ void usage() {
       "\t-r [repeat]: Specifies the number of times to repeat\n"
       "\t-v: verbose\n"
       "\t-n [test_case_name]: Specifies a single test case to run.\n"
-      "\t-e [EXECUTION_PROVIDER]: EXECUTION_PROVIDER could be 'cpu', 'cuda', 'dnnl', 'tensorrt', 'vsinpu'"
+      "\t-e [EXECUTION_PROVIDER]: EXECUTION_PROVIDER could be 'cpu', 'cuda', 'dnnl', 'tensorrt', 'nv', 'vsinpu'"
       "'openvino', 'rocm', 'migraphx', 'acl', 'armnn', 'xnnpack', 'webgpu', 'nnapi', 'qnn', 'snpe' or 'coreml'. "
       "Default: 'cpu'.\n"
       "\t-p: Pause after launch, can attach debugger and continue\n"
@@ -207,6 +207,7 @@ int real_main(int argc, char* argv[], Ort::Env& env) {
   bool enable_dnnl = false;
   bool enable_openvino = false;
   bool enable_tensorrt = false;
+  bool enable_nv = false;
   bool enable_mem_pattern = true;
   bool enable_qnn = false;
   bool enable_nnapi = false;
@@ -288,6 +289,8 @@ int real_main(int argc, char* argv[], Ort::Env& env) {
             enable_openvino = true;
           } else if (!CompareCString(optarg, ORT_TSTR("tensorrt"))) {
             enable_tensorrt = true;
+          } else if (!CompareCString(optarg, ORT_TSTR("nv"))) {
+            enable_nv = true;
           } else if (!CompareCString(optarg, ORT_TSTR("qnn"))) {
             enable_qnn = true;
           } else if (!CompareCString(optarg, ORT_TSTR("nnapi"))) {
@@ -479,6 +482,22 @@ int real_main(int argc, char* argv[], Ort::Env& env) {
       fprintf(stderr, "TensorRT is not supported in this build");
       return -1;
 #endif
+    }
+    if (enable_nv) {
+      #ifdef USE_NV
+            Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Nv(sf, device_id));
+      #ifdef USE_CUDA
+            OrtCUDAProviderOptionsV2 cuda_options;
+            cuda_options.device_id = device_id;
+            cuda_options.do_copy_in_default_stream = true;
+            cuda_options.use_tf32 = false;
+            // TODO: Support arena configuration for users of test runner
+            sf.AppendExecutionProvider_CUDA_V2(cuda_options);
+      #endif
+      #else
+            fprintf(stderr, "Nv is not supported in this build");
+            return -1;
+      #endif
     }
     if (enable_openvino) {
 #ifdef USE_OPENVINO

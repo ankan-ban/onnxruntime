@@ -619,10 +619,12 @@ def parse_arguments():
     parser.add_argument("--enable_msinternal", action="store_true", help="Enable for Microsoft internal builds only.")
     parser.add_argument("--use_vitisai", action="store_true", help="Build with Vitis-AI")
     parser.add_argument("--use_tensorrt", action="store_true", help="Build with TensorRT")
+    parser.add_argument("--use_nv", action="store_true", help="Build with TensorRT")
     parser.add_argument(
         "--use_tensorrt_builtin_parser", action="store_true", default=True, help="Use TensorRT builtin parser"
     )
     parser.add_argument("--use_tensorrt_oss_parser", action="store_true", help="Use TensorRT OSS parser")
+
     parser.add_argument("--tensorrt_home", help="Path to TensorRT installation dir")
     parser.add_argument("--test_all_timeout", default="10800", help="Set timeout for onnxruntime_test_all")
     parser.add_argument("--use_migraphx", action="store_true", help="Build with MIGraphX")
@@ -1036,6 +1038,8 @@ def generate_vcpkg_install_options(build_dir, args):
         vcpkg_install_options.append("--x-feature=rocm-ep")
     if args.use_tensorrt:
         vcpkg_install_options.append("--x-feature=tensorrt-ep")
+    if args.use_nv:
+        vcpkg_install_options.append("--x-feature=nv-ep")
     if args.use_vitisai:
         vcpkg_install_options.append("--x-feature=vitisai-ep")
     if args.use_vsinpu:
@@ -1147,10 +1151,12 @@ def generate_build_tree(
         "-Donnxruntime_ENABLE_MICROSOFT_INTERNAL=" + ("ON" if args.enable_msinternal else "OFF"),
         "-Donnxruntime_USE_VITISAI=" + ("ON" if args.use_vitisai else "OFF"),
         "-Donnxruntime_USE_TENSORRT=" + ("ON" if args.use_tensorrt else "OFF"),
+        "-Donnxruntime_USE_NV=" + ("ON" if args.use_nv else "OFF"),
         "-Donnxruntime_USE_TENSORRT_BUILTIN_PARSER="
         + ("ON" if args.use_tensorrt_builtin_parser and not args.use_tensorrt_oss_parser else "OFF"),
         # interface variables are used only for building onnxruntime/onnxruntime_shared.dll but not EPs
         "-Donnxruntime_USE_TENSORRT_INTERFACE=" + ("ON" if args.enable_generic_interface else "OFF"),
+        "-Donnxruntime_USE_NV_INTERFACE=" + ("ON" if args.enable_generic_interface else "OFF"),
         "-Donnxruntime_USE_CUDA_INTERFACE=" + ("ON" if args.enable_generic_interface else "OFF"),
         "-Donnxruntime_USE_OPENVINO_INTERFACE=" + ("ON" if args.enable_generic_interface else "OFF"),
         "-Donnxruntime_USE_VITISAI_INTERFACE=" + ("ON" if args.enable_generic_interface else "OFF"),
@@ -1419,7 +1425,7 @@ def generate_build_tree(
     if args.use_rocm:
         cmake_args.append("-Donnxruntime_ROCM_HOME=" + rocm_home)
         cmake_args.append("-Donnxruntime_ROCM_VERSION=" + args.rocm_version)
-    if args.use_tensorrt:
+    if args.use_tensorrt or args.use_nv:
         cmake_args.append("-Donnxruntime_TENSORRT_HOME=" + tensorrt_home)
 
     if args.use_cuda:
@@ -2050,7 +2056,7 @@ def setup_cann_vars(args):
 
 def setup_tensorrt_vars(args):
     tensorrt_home = ""
-    if args.use_tensorrt:
+    if args.use_tensorrt or args.use_nv:
         tensorrt_home = args.tensorrt_home if args.tensorrt_home else os.getenv("TENSORRT_HOME")
         tensorrt_home_valid = tensorrt_home is not None and os.path.exists(tensorrt_home)
         if not tensorrt_home_valid:
@@ -2334,7 +2340,7 @@ def run_onnxruntime_tests(args, source_dir, ctest_path, build_dir, configs):
             run_ios_tests(args, source_dir, config, cwd)
             continue
         dll_path_list = []
-        if args.use_tensorrt:
+        if args.use_tensorrt or args.use_nv:
             dll_path_list.append(os.path.join(args.tensorrt_home, "lib"))
 
         dll_path = None
@@ -2401,10 +2407,10 @@ def run_onnxruntime_tests(args, source_dir, ctest_path, build_dir, configs):
                 log.info("Testing DML Graph feature")
                 run_subprocess([sys.executable, "onnxruntime_test_python_dmlgraph.py"], cwd=cwd, dll_path=dll_path)
 
-            if not args.disable_ml_ops and not args.use_tensorrt:
+            if not args.disable_ml_ops and not (args.use_tensorrt or args.use_nv):
                 run_subprocess([sys.executable, "onnxruntime_test_python_mlops.py"], cwd=cwd, dll_path=dll_path)
 
-            if args.use_tensorrt:
+            if args.use_tensorrt or args.use_nv:
                 run_subprocess(
                     [sys.executable, "onnxruntime_test_python_nested_control_flow_op.py"], cwd=cwd, dll_path=dll_path
                 )
@@ -2421,7 +2427,7 @@ def run_onnxruntime_tests(args, source_dir, ctest_path, build_dir, configs):
             if onnx_test:
                 # Disable python onnx tests for TensorRT and CANN EP, because many tests are
                 # not supported yet.
-                if args.use_tensorrt or args.use_cann:
+                if args.use_tensorrt or args.use_cann or  args.use_nv:
                     return
 
                 run_subprocess(
@@ -2529,6 +2535,7 @@ def build_python_wheel(
     rocm_version,
     use_dnnl,
     use_tensorrt,
+    use_nv,
     use_openvino,
     use_vitisai,
     use_acl,
@@ -2612,6 +2619,7 @@ def build_nuget_package(
     use_rocm,
     use_openvino,
     use_tensorrt,
+    use_nv,
     use_dnnl,
     use_winml,
     use_qnn,
@@ -2652,6 +2660,9 @@ def build_nuget_package(
     elif use_tensorrt:
         execution_provider = "/p:ExecutionProvider=tensorrt"
         package_name = "/p:OrtPackageId=Microsoft.ML.OnnxRuntime.TensorRT"
+    elif use_nv:
+        execution_provider = "/p:ExecutionProvider=nv"
+        package_name = "/p:OrtPackageId=Microsoft.ML.OnnxRuntime.Nv"
     elif use_dnnl:
         execution_provider = "/p:ExecutionProvider=dnnl"
         package_name = "/p:OrtPackageId=Microsoft.ML.OnnxRuntime.DNNL"
@@ -2762,6 +2773,7 @@ def run_csharp_tests(
     use_cuda,
     use_openvino,
     use_tensorrt,
+    use_nv,
     use_dnnl,
     enable_training_apis,
     configs,
@@ -2778,6 +2790,8 @@ def run_csharp_tests(
         macros += "USE_OPENVINO;"
     if use_tensorrt:
         macros += "USE_TENSORRT;"
+    if use_nv:
+        macros += "USE_NV;"
     if use_dnnl:
         macros += "USE_DNNL;"
     if use_cuda:
@@ -2906,7 +2920,7 @@ def main():
     # shared lib being build in a seperate process. So we skip the testing if none of the primary EPs are built with ONNXRuntime
     # shared lib
     if args.enable_generic_interface and not (
-        args.use_tensorrt or args.use_openvino or args.use_vitisai or (args.use_qnn and args.use_qnn != "static_lib")
+        args.use_nv or args.use_tensorrt or args.use_openvino or args.use_vitisai or (args.use_qnn and args.use_qnn != "static_lib")
     ):
         args.test = False
 
@@ -2924,7 +2938,7 @@ def main():
     if args.skip_tests:
         args.test = False
 
-    if args.use_tensorrt:
+    if args.use_tensorrt or args.use_nv:
         args.use_cuda = True
 
     if args.build_wheel or args.gen_doc or args.enable_training:
@@ -3032,7 +3046,7 @@ def main():
 
     # if using tensorrt, setup tensorrt paths
     tensorrt_home = ""
-    if args.use_tensorrt:
+    if args.use_tensorrt or args.use_nv:
         tensorrt_home = setup_tensorrt_vars(args)
 
     # if using migraphx, setup migraphx paths
@@ -3240,6 +3254,7 @@ def main():
                 args.rocm_version,
                 args.use_dnnl,
                 args.use_tensorrt,
+                args.use_nv,
                 args.use_openvino,
                 args.use_vitisai,
                 args.use_acl,
@@ -3267,6 +3282,7 @@ def main():
                 args.use_rocm,
                 args.use_openvino,
                 args.use_tensorrt,
+                args.use_nv,
                 args.use_dnnl,
                 args.use_winml,
                 args.use_qnn,
@@ -3281,6 +3297,7 @@ def main():
             args.use_cuda,
             args.use_openvino,
             args.use_tensorrt,
+            args.use_nv,
             args.use_dnnl,
             args.enable_training_apis,
             configs,

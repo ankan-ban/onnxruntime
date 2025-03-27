@@ -16,6 +16,10 @@ inline const std::unordered_set<std::string> ExcludeTrtOnA100() {
     return {kTensorrtExecutionProvider};
   }
 
+  if (DefaultNvExecutionProvider() != nullptr && GetCudaArchitecture() == 800) {
+    return {kNvExecutionProvider};
+  }
+
   return {};
 }
 
@@ -23,6 +27,10 @@ inline const std::unordered_set<std::string> ExcludeTrtOnA100() {
 inline const std::unordered_set<std::string>& ExcludeTrtOnA100(std::unordered_set<std::string>& excluded_providers) {
   if (DefaultTensorrtExecutionProvider() != nullptr && GetCudaArchitecture() == 800) {
     excluded_providers.insert(kTensorrtExecutionProvider);
+    return excluded_providers;
+  }
+  if (DefaultNvExecutionProvider() != nullptr && GetCudaArchitecture() == 800) {
+    excluded_providers.insert(kNvExecutionProvider);
     return excluded_providers;
   }
 

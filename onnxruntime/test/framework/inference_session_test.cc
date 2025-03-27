@@ -39,6 +39,9 @@
 #ifdef USE_TENSORRT
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
 #endif
+#ifdef USE_NV
+#include "core/providers/nv/nv_provider_options.h"
+#endif
 #ifdef USE_ROCM
 #include "core/providers/rocm/rocm_provider_factory.h"
 #include "core/providers/rocm/gpu_data_transfer.h"
@@ -1636,8 +1639,9 @@ TEST(InferenceSessionTests, Test3LayerNestedSubgraph) {
   SessionOptions so;
   so.session_logid = "InferenceSessionTests.Test3LayerNestedSubgraph";
   InferenceSession session_object{so, GetEnvironment()};
-
-#if USE_TENSORRT
+#if USE_NV
+  ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultNvExecutionProvider()));
+#elif USE_TENSORRT
   ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultTensorrtExecutionProvider()));
 #elif USE_CUDA
   ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultCudaExecutionProvider()));
@@ -1690,6 +1694,23 @@ TEST(InferenceSessionTests, Test3LayerNestedSubgraph) {
   ASSERT_TRUE(status.IsOK());
   VerifyOutputs(fetches, expected_dims, expected_values);
 #endif
+
+#if USE_NV
+  // previous run with graph being optimized, one of If node’s both subgraphs become empty, so TRT EP won’t assign this If node to TRT and later ORT assign it to CUDA.
+  // we also want to test graph not being optimized and TRT EP should also be able to run it and make the whole graph run on TRT.
+  so.graph_optimization_level = TransformerLevel::Default;
+  InferenceSession session_object_2{so, GetEnvironment()};
+  ASSERT_STATUS_OK(session_object_2.RegisterExecutionProvider(DefaultNvExecutionProvider()));
+  status = session_object_2.Load(model_file_name);
+  ASSERT_TRUE(status.IsOK());
+  status = session_object_2.Initialize();
+  ASSERT_TRUE(status.IsOK());
+  // Now run
+  status = session_object_2.Run(run_options, feeds, output_names, &fetches);
+  ASSERT_TRUE(status.IsOK());
+  VerifyOutputs(fetches, expected_dims, expected_values);
+#endif
+
 }
 
 TEST(InferenceSessionTests, Test2LayerNestedSubgraph) {
@@ -1788,8 +1809,9 @@ TEST(InferenceSessionTests, Test2LayerNestedSubgraph) {
   SessionOptions so;
   so.session_logid = "InferenceSessionTests.Test2LayerNestedSubgraph";
   InferenceSession session_object{so, GetEnvironment()};
-
-#if USE_TENSORRT
+#if USE_NV
+  ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultNvExecutionProvider()));
+#elif USE_TENSORRT
   ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultTensorrtExecutionProvider()));
 #elif USE_CUDA
   ASSERT_STATUS_OK(session_object.RegisterExecutionProvider(DefaultCudaExecutionProvider()));

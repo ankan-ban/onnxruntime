@@ -87,6 +87,10 @@ function(AddTest)
     # used for instantiating placeholder TRT builder to mitigate TRT library load/unload overhead
     target_include_directories(${_UT_TARGET} PRIVATE ${TENSORRT_INCLUDE_DIR})
   endif()
+  if (onnxruntime_USE_NV)
+    # used for instantiating placeholder TRT builder to mitigate TRT library load/unload overhead
+    target_include_directories(${_UT_TARGET} PRIVATE ${NV_INCLUDE_DIR})
+  endif()
 
   if(MSVC)
     target_compile_options(${_UT_TARGET} PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--compiler-options /utf-8>"
@@ -674,6 +678,15 @@ if(onnxruntime_USE_TENSORRT)
   list(APPEND onnxruntime_test_providers_libs ${TENSORRT_LIBRARY_INFER})
 endif()
 
+if(onnxruntime_USE_NV)
+  list(APPEND onnxruntime_test_framework_src_patterns  ${TEST_SRC_DIR}/providers/nv/*)
+  list(APPEND onnxruntime_test_framework_src_patterns  "${ONNXRUNTIME_ROOT}/core/providers/nv/nv_execution_provider_utils.h")
+  list(APPEND onnxruntime_test_framework_libs onnxruntime_providers_nv)
+  list(APPEND onnxruntime_test_providers_dependencies onnxruntime_providers_nv onnxruntime_providers_shared)
+  list(APPEND onnxruntime_test_providers_libs ${TENSORRT_LIBRARY_INFER})
+endif()
+
+
 if(onnxruntime_USE_MIGRAPHX)
   list(APPEND onnxruntime_test_framework_src_patterns  ${TEST_SRC_DIR}/providers/migraphx/*)
   list(APPEND onnxruntime_test_framework_src_patterns  "${ONNXRUNTIME_ROOT}/core/providers/migraphx/migraphx_execution_provider_utils.h")
@@ -891,7 +904,7 @@ if (USE_ROCM)
 endif()
 
 set(test_all_args)
-if (onnxruntime_USE_TENSORRT)
+if (onnxruntime_USE_TENSORRT OR onnxruntime_USE_NV)
   # TRT EP CI takes much longer time when updating to TRT 8.2
   # So, we only run trt ep and exclude other eps to reduce CI test time.
   #
@@ -938,7 +951,7 @@ if (HAS_SHORTEN_64_TO_32 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
   target_compile_options(onnxruntime_test_all PRIVATE -Wno-error=shorten-64-to-32)
 endif()
 
-if (UNIX AND onnxruntime_USE_TENSORRT)
+if (UNIX AND (onnxruntime_USE_TENSORRT OR onnxruntime_USE_NV))
     # The test_main.cc includes NvInfer.h where it has many deprecated declarations
     # simply ignore them for TensorRT EP build
     set_property(TARGET onnxruntime_test_all APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-deprecated-declarations")
@@ -1342,6 +1355,9 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
     if (onnxruntime_USE_TENSORRT)
       list(APPEND onnxruntime_shared_lib_test_LIBS ${TENSORRT_LIBRARY_INFER})
     endif()
+    if (onnxruntime_USE_NV)
+      list(APPEND onnxruntime_shared_lib_test_LIBS ${TENSORRT_LIBRARY_INFER})
+    endif()
     if (onnxruntime_USE_DML)
       list(APPEND onnxruntime_shared_lib_test_LIBS d3d12.lib)
     endif()
@@ -1383,7 +1399,7 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
         $<TARGET_FILE_DIR:onnxruntime_shared_lib_test>/testdata)
     endif()
 
-    if (UNIX AND onnxruntime_USE_TENSORRT)
+    if (UNIX AND (onnxruntime_USE_TENSORRT OR onnxruntime_USE_NV))
         # The test_main.cc includes NvInfer.h where it has many deprecated declarations
         # simply ignore them for TensorRT EP build
         set_property(TARGET onnxruntime_shared_lib_test APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-deprecated-declarations")
@@ -1672,6 +1688,9 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     if (onnxruntime_USE_TENSORRT)
       list(APPEND onnxruntime_customopregistration_test_LIBS ${TENSORRT_LIBRARY_INFER})
     endif()
+    if (onnxruntime_USE_NV)
+      list(APPEND onnxruntime_customopregistration_test_LIBS ${TENSORRT_LIBRARY_INFER})
+    endif()
     if (CMAKE_SYSTEM_NAME MATCHES "AIX")
       list(APPEND onnxruntime_customopregistration_test_LIBS onnxruntime_graph onnxruntime_session onnxruntime_providers onnxruntime_lora onnxruntime_framework onnxruntime_util onnxruntime_mlas onnxruntime_optimizer onnxruntime_flatbuffers iconv re2 ${PROTOBUF_LIB} onnx onnx_proto)
     endif()
@@ -1690,7 +1709,7 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
         $<TARGET_FILE_DIR:onnxruntime_customopregistration_test>/testdata)
     endif()
 
-    if (UNIX AND onnxruntime_USE_TENSORRT)
+    if (UNIX AND (onnxruntime_USE_TENSORRT OR onnxruntime_USE_NV))
         # The test_main.cc includes NvInfer.h where it has many deprecated declarations
         # simply ignore them for TensorRT EP build
         set_property(TARGET onnxruntime_customopregistration_test APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-deprecated-declarations")
