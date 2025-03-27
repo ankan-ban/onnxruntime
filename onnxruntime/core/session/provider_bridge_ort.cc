@@ -2257,11 +2257,11 @@ ProviderOptions GetProviderInfo_Tensorrt(const OrtTensorRTProviderOptionsV2* pro
   return s_library_tensorrt.Get().GetProviderOptions(reinterpret_cast<const void*>(provider_options));
 }
 void UpdateProviderInfo_Nv(OrtNvProviderOptionsV2* provider_options, const ProviderOptions& options) {
-  s_library_tensorrt.Get().UpdateProviderOptions(reinterpret_cast<void*>(provider_options), options);
+  s_library_nv.Get().UpdateProviderOptions(reinterpret_cast<void*>(provider_options), options);
 }
 
 ProviderOptions GetProviderInfo_Nv(const OrtNvProviderOptionsV2* provider_options) {
-  return s_library_tensorrt.Get().GetProviderOptions(reinterpret_cast<const void*>(provider_options));
+  return s_library_nv.Get().GetProviderOptions(reinterpret_cast<const void*>(provider_options));
 }
 
 void UpdateProviderInfo_Cuda(OrtCUDAProviderOptionsV2* provider_options, const ProviderOptions& options) {
@@ -2784,7 +2784,7 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2, _In_ O
   options->provider_factories.push_back(factory);
 
   std::string extra_plugin_lib_paths = (nv_options == nullptr || nv_options->nv_extra_plugin_lib_paths == nullptr) ? "" : nv_options->nv_extra_plugin_lib_paths;
-  AddTensorRTCustomOpDomainToSessionOption(options, extra_plugin_lib_paths);
+  //AddTensorRTCustomOpDomainToSessionOption(options, extra_plugin_lib_paths);
 
   return nullptr;
   API_IMPL_END

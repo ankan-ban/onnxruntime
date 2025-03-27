@@ -39,7 +39,7 @@ namespace perftest {
       "\t-A: Disable memory arena\n"
       "\t-I: Generate tensor input binding. Free dimensions are treated as 1 unless overridden using -f.\n"
       "\t-c [parallel runs]: Specifies the (max) number of runs to invoke simultaneously. Default:1.\n"
-      "\t-e [cpu|cuda|dnnl|tensorrt|openvino|dml|acl|nnapi|coreml|qnn|snpe|rocm|migraphx|xnnpack|vitisai|webgpu]: Specifies the provider 'cpu','cuda','dnnl','tensorrt', "
+      "\t-e [cpu|cuda|dnnl|tensorrt|openvino|dml|acl|nnapi|coreml|qnn|snpe|rocm|migraphx|xnnpack|vitisai|webgpu|nv]: Specifies the provider 'cpu','cuda','dnnl','tensorrt', 'nv', "
       "'openvino', 'dml', 'acl', 'nnapi', 'coreml', 'qnn', 'snpe', 'rocm', 'migraphx', 'xnnpack', 'vitisai' or 'webgpu'. "
       "Default:'cpu'.\n"
       "\t-b [tf|ort]: backend to use. Default:ort\n"
@@ -126,6 +126,27 @@ namespace perftest {
       "\t    [TensorRT only] [trt_context_memory_sharing_enable]: Enable TensorRT context memory sharing between subgraphs.\n"
       "\t    [TensorRT only] [trt_layer_norm_fp32_fallback]: Force Pow + Reduce ops in layer norm to run in FP32 to avoid overflow.\n"
       "\t    [Example] [For TensorRT EP] -e tensorrt -i 'trt_fp16_enable|true trt_int8_enable|true trt_int8_calibration_table_name|calibration.flatbuffers trt_int8_use_native_calibration_table|false trt_force_sequential_engine_build|false'\n"
+	  "\n"
+      "\t    [Nv only] [nv_max_partition_iterations]: Maximum iterations for Nv parser to get capability.\n"
+      "\t    [Nv only] [nv_min_subgraph_size]: Minimum size of Nv subgraphs.\n"
+      "\t    [Nv only] [nv_max_workspace_size]: Set Nv maximum workspace size in byte.\n"
+      "\t    [Nv only] [nv_fp16_enable]: Enable Nv FP16 precision.\n"
+      "\t    [Nv only] [nv_int8_enable]: Enable Nv INT8 precision.\n"
+      "\t    [Nv only] [nv_int8_calibration_table_name]: Specify INT8 calibration table name.\n"
+      "\t    [Nv only] [nv_int8_use_native_calibration_table]: Use Native Nv calibration table.\n"
+      "\t    [Nv only] [nv_dla_enable]: Enable DLA in Jetson device.\n"
+      "\t    [Nv only] [nv_dla_core]: DLA core number.\n"
+      "\t    [Nv only] [nv_dump_subgraphs]: Dump nv subgraph to onnx model.\n"
+      "\t    [Nv only] [nv_engine_cache_enable]: Enable engine caching.\n"
+      "\t    [Nv only] [nv_engine_cache_path]: Specify engine cache path.\n"
+      "\t    [Nv only] [nv_engine_cache_prefix]: Customize engine cache prefix when nv_engine_cache_enable is true.\n"
+      "\t    [Nv only] [nv_engine_hw_compatible]: Enable hardware compatibility. Engines ending with '_sm80+' can be re-used across all Ampere+ GPU (a hardware-compatible engine may have lower throughput and/or higher latency than its non-hardware-compatible counterpart).\n"
+      "\t    [Nv only] [nv_weight_stripped_engine_enable]: Enable weight-stripped engine build.\n"
+      "\t    [Nv only] [nv_onnx_model_folder_path]: Folder path for the ONNX model with weights.\n"
+      "\t    [Nv only] [nv_force_sequential_engine_build]: Force Nv engines to be built sequentially.\n"
+      "\t    [Nv only] [nv_context_memory_sharing_enable]: Enable Nv context memory sharing between subgraphs.\n"
+      "\t    [Nv only] [nv_layer_norm_fp32_fallback]: Force Pow + Reduce ops in layer norm to run in FP32 to avoid overflow.\n"
+      "\t    [Example] [For Nv EP] -e nv -i 'nv_fp16_enable|true nv_int8_enable|true nv_int8_calibration_table_name|calibration.flatbuffers nv_int8_use_native_calibration_table|false nv_force_sequential_engine_build|false'\n"
       "\n"
       "\t    [NNAPI only] [NNAPI_FLAG_USE_FP16]: Use fp16 relaxation in NNAPI EP..\n"
       "\t    [NNAPI only] [NNAPI_FLAG_USE_NCHW]: Use the NCHW layout in NNAPI EP.\n"
@@ -237,6 +258,8 @@ static bool ParseDimensionOverride(std::basic_string<ORTCHAR_T>& dim_identifier,
           test_config.machine_config.provider_type_name = onnxruntime::kOpenVINOExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("tensorrt"))) {
           test_config.machine_config.provider_type_name = onnxruntime::kTensorrtExecutionProvider;
+        } else if (!CompareCString(optarg, ORT_TSTR("nv"))) {
+          test_config.machine_config.provider_type_name = onnxruntime::kNvExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("qnn"))) {
           test_config.machine_config.provider_type_name = onnxruntime::kQnnExecutionProvider;
         } else if (!CompareCString(optarg, ORT_TSTR("snpe"))) {
