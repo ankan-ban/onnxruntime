@@ -9,6 +9,7 @@
 #include "core/framework/provider_options.h"
 #include "core/providers/nv/nv_provider_options.h"
 #include "core/providers/nv/nv_execution_provider_custom_ops.h"
+#include "nv_provider_options_internal.h"
 #include <string.h>
 
 using namespace onnxruntime;
@@ -45,6 +46,44 @@ struct ProviderInfo_Nv_Impl final : ProviderInfo_Nv {
     return nullptr;
   }
 
+  OrtStatus* CreateProviderOptions(_Outptr_ OrtNvProviderOptions** out) override {
+    if (!out) {
+      return CreateStatus(ORT_INVALID_ARGUMENT, "Output pointer 'out' is NULL.");
+    }
+    *out = NULL; // Initialize output
+
+    struct OrtNvProviderOptions* options = (struct OrtNvProviderOptions*)malloc(sizeof(struct OrtNvProviderOptions));
+    if (!options) {
+        return CreateStatus(ORT_FAIL, "Failed to allocate memory for NvProviderOptions.");
+    }
+    options->magic_number = ORT_NV_PROVIDER_OPTIONS_MAGIC; // Set the magic number
+
+    *out = options; // Assign the created handle to the output parameter
+    return nullptr;
+  }
+
+  void ReleaseProviderOptions(_Frees_ptr_opt_ OrtNvProviderOptions* options) override {
+    if (options) {
+      if (options->magic_number == ORT_NV_PROVIDER_OPTIONS_MAGIC) {
+          // If you had members that were heap-allocated *internally* by the options struct, free them here.
+          // Example: free(options->some_string_option);
+
+          // Invalidate the magic number to help detect use-after-free issues.
+          options->magic_number = 0;
+
+          // Free the main struct allocation
+          free(options);
+      } else {
+          // Handle error: Log a warning? Abort in debug mode?
+          // Attempting to release an invalid handle.
+          // Depending on policy, you might just ignore it or log defensively.
+      }
+  }
+  }
+
+
+
+
 } g_info;
 
 struct NvProviderFactory : IExecutionProviderFactory {
@@ -71,54 +110,54 @@ struct Nv_Provider : Provider {
     return std::make_shared<NvProviderFactory>(info);
   }
 
-  std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory(const void* provider_options) override {
-    auto& options = *reinterpret_cast<const OrtNvProviderOptionsV2*>(provider_options);
+  std::shared_ptr<IExecutionProviderFactory> CreateExecutionProviderFactory(const void* /*provider_options*/) override {
+    // auto& options = *reinterpret_cast<const OrtNvProviderOptions*>(provider_options);
     NvExecutionProviderInfo info;
-    info.device_id = options.device_id;
-    info.has_user_compute_stream = options.has_user_compute_stream != 0;
-    info.user_compute_stream = options.user_compute_stream;
+    info.device_id = 0;
+    info.has_user_compute_stream = false;
+    info.user_compute_stream = 0;
     info.has_trt_options = true;
-    info.max_partition_iterations = options.nv_max_partition_iterations;
-    info.min_subgraph_size = options.nv_min_subgraph_size;
-    info.max_workspace_size = options.nv_max_workspace_size;
-    info.fp16_enable = options.nv_fp16_enable != 0;
-    info.int8_enable = options.nv_int8_enable != 0;
-    info.int8_calibration_table_name = options.nv_int8_calibration_table_name == nullptr ? "" : options.nv_int8_calibration_table_name;
-    info.int8_use_native_calibration_table = options.nv_int8_use_native_calibration_table != 0;
-    info.dla_enable = options.nv_dla_enable != 0;
-    info.dla_core = options.nv_dla_core;
-    info.dump_subgraphs = options.nv_dump_subgraphs != 0;
-    info.engine_cache_enable = options.nv_engine_cache_enable != 0;
-    info.engine_cache_path = options.nv_engine_cache_path == nullptr ? "" : options.nv_engine_cache_path;
-    info.weight_stripped_engine_enable = options.nv_weight_stripped_engine_enable != 0;
-    info.onnx_model_folder_path = options.nv_onnx_model_folder_path == nullptr ? "" : options.nv_onnx_model_folder_path;
-    info.engine_decryption_enable = options.nv_engine_decryption_enable != 0;
-    info.engine_decryption_lib_path = options.nv_engine_decryption_lib_path == nullptr ? "" : options.nv_engine_decryption_lib_path;
-    info.force_sequential_engine_build = options.nv_force_sequential_engine_build != 0;
-    info.context_memory_sharing_enable = options.nv_context_memory_sharing_enable != 0;
-    info.layer_norm_fp32_fallback = options.nv_layer_norm_fp32_fallback != 0;
-    info.timing_cache_enable = options.nv_timing_cache_enable != 0;
-    info.timing_cache_path = options.nv_timing_cache_path == nullptr ? "" : options.nv_timing_cache_path;
-    info.force_timing_cache = options.nv_force_timing_cache != 0;
-    info.detailed_build_log = options.nv_detailed_build_log != 0;
-    info.build_heuristics_enable = options.nv_build_heuristics_enable != 0;
-    info.sparsity_enable = options.nv_sparsity_enable;
-    info.builder_optimization_level = options.nv_builder_optimization_level;
-    info.auxiliary_streams = options.nv_auxiliary_streams;
-    info.tactic_sources = options.nv_tactic_sources == nullptr ? "" : options.nv_tactic_sources;
-    info.extra_plugin_lib_paths = options.nv_extra_plugin_lib_paths == nullptr ? "" : options.nv_extra_plugin_lib_paths;
-    info.profile_min_shapes = options.nv_profile_min_shapes == nullptr ? "" : options.nv_profile_min_shapes;
-    info.profile_max_shapes = options.nv_profile_max_shapes == nullptr ? "" : options.nv_profile_max_shapes;
-    info.profile_opt_shapes = options.nv_profile_opt_shapes == nullptr ? "" : options.nv_profile_opt_shapes;
-    info.cuda_graph_enable = options.nv_cuda_graph_enable != 0;
-    info.dump_ep_context_model = options.nv_dump_ep_context_model != 0;
-    info.ep_context_file_path = options.nv_ep_context_file_path == nullptr ? "" : options.nv_ep_context_file_path;
-    info.ep_context_embed_mode = options.nv_ep_context_embed_mode;
-    info.engine_cache_prefix = options.nv_engine_cache_prefix == nullptr ? "" : options.nv_engine_cache_prefix;
-    info.engine_hw_compatible = options.nv_engine_hw_compatible != 0;
-    info.onnx_bytestream = options.nv_onnx_bytestream;
-    info.onnx_bytestream_size = options.nv_onnx_bytestream_size;
-    info.op_types_to_exclude = options.nv_op_types_to_exclude == nullptr ? "" : options.nv_op_types_to_exclude;
+    info.max_partition_iterations = 0;
+    info.min_subgraph_size = 0;
+    info.max_workspace_size = 0;
+    info.fp16_enable = false;
+    info.int8_enable = false;
+    info.int8_calibration_table_name = "";
+    info.int8_use_native_calibration_table = false;
+    info.dla_enable = false;
+    info.dla_core = 0;
+    info.dump_subgraphs = false;
+    info.engine_cache_enable = false;
+    info.engine_cache_path = "";
+    info.weight_stripped_engine_enable = false;
+    info.onnx_model_folder_path = "";
+    info.engine_decryption_enable = false;
+    info.engine_decryption_lib_path = "";
+    info.force_sequential_engine_build = false;
+    info.context_memory_sharing_enable = false;
+    info.layer_norm_fp32_fallback = false;
+    info.timing_cache_enable = false;
+    info.timing_cache_path = "";
+    info.force_timing_cache = false;
+    info.detailed_build_log = false;
+    info.build_heuristics_enable = false;
+    info.sparsity_enable = 0;
+    info.builder_optimization_level = 0;
+    info.auxiliary_streams = -1;
+    info.tactic_sources = "";
+    info.extra_plugin_lib_paths = "";
+    info.profile_min_shapes = "";
+    info.profile_max_shapes = "";
+    info.profile_opt_shapes = "";
+    info.cuda_graph_enable = false;
+    info.dump_ep_context_model = false;
+    info.ep_context_file_path = "";
+    info.ep_context_embed_mode = 0;
+    info.engine_cache_prefix = "";
+    info.engine_hw_compatible = false;
+    info.onnx_bytestream = nullptr;
+    info.onnx_bytestream_size = 0;
+    info.op_types_to_exclude = "";
 
     return std::make_shared<NvProviderFactory>(info);
   }
@@ -128,7 +167,7 @@ struct Nv_Provider : Provider {
   }
 
   ProviderOptions GetProviderOptions(const void* provider_options) override {
-    auto& options = *reinterpret_cast<const OrtNvProviderOptionsV2*>(provider_options);
+    auto& options = *reinterpret_cast<const OrtNvProviderOptions*>(provider_options);
     return onnxruntime::NvExecutionProviderInfo::ToProviderOptions(options);
   }
 

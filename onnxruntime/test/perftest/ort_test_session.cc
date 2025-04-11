@@ -195,9 +195,9 @@ OnnxRuntimeTestSession::OnnxRuntimeTestSession(Ort::Env& env, std::random_device
 } else if (provider_name_ == onnxruntime::kNvExecutionProvider) {
   #ifdef USE_NV
       const auto& api = Ort::GetApi();
-      OrtNvProviderOptionsV2* nv_options;
+      OrtNvProviderOptions* nv_options;
       Ort::ThrowOnError(api.CreateNvProviderOptions(&nv_options));
-      std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)> rel_trt_options(
+      std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)> rel_trt_options(
           nv_options, api.ReleaseNvProviderOptions);
       std::vector<const char*> option_keys, option_values;
       // used to keep all option keys and value strings alive
@@ -224,10 +224,10 @@ OnnxRuntimeTestSession::OnnxRuntimeTestSession(Ort::Env& env, std::random_device
                   "\nSupported options are:\n", options);
       }
 
-      session_options.AppendExecutionProvider_Nv_V2(*nv_options);
+      session_options.AppendExecutionProvider_Nv(*nv_options);
 
       OrtCUDAProviderOptions cuda_options;
-      cuda_options.device_id = nv_options->device_id;
+      cuda_options.device_id = 0/*nv_options->device_id*/;
       cuda_options.cudnn_conv_algo_search = static_cast<OrtCudnnConvAlgoSearch>(performance_test_config.run_config.cudnn_conv_algo);
       cuda_options.do_copy_in_default_stream = !performance_test_config.run_config.do_cuda_copy_in_separate_stream;
       // TODO: Support arena configuration for users of perf test

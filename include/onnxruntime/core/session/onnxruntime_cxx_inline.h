@@ -851,15 +851,10 @@ inline SessionOptionsImpl<T>& SessionOptionsImpl<T>::AppendExecutionProvider_Ten
   return *this;
 }
 
+
 template <typename T>
 inline SessionOptionsImpl<T>& SessionOptionsImpl<T>::AppendExecutionProvider_Nv(const OrtNvProviderOptions& provider_options) {
   ThrowOnError(GetApi().SessionOptionsAppendExecutionProvider_Nv(this->p_, &provider_options));
-  return *this;
-}
-
-template <typename T>
-inline SessionOptionsImpl<T>& SessionOptionsImpl<T>::AppendExecutionProvider_Nv_V2(const OrtNvProviderOptionsV2& provider_options) {
-  ThrowOnError(GetApi().SessionOptionsAppendExecutionProvider_Nv_V2(this->p_, &provider_options));
   return *this;
 }
 

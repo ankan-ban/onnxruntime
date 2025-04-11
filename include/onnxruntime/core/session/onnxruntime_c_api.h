@@ -297,7 +297,7 @@ ORT_RUNTIME_CLASS(ThreadingOptions);
 ORT_RUNTIME_CLASS(ArenaCfg);
 ORT_RUNTIME_CLASS(PrepackedWeightsContainer);
 ORT_RUNTIME_CLASS(TensorRTProviderOptionsV2);
-ORT_RUNTIME_CLASS(NvProviderOptionsV2);
+ORT_RUNTIME_CLASS(NvProviderOptions);
 ORT_RUNTIME_CLASS(CUDAProviderOptionsV2);
 ORT_RUNTIME_CLASS(CANNProviderOptions);
 ORT_RUNTIME_CLASS(DnnlProviderOptions);
@@ -609,33 +609,6 @@ typedef struct OrtTensorRTProviderOptions {
   // For non-string field, need to create a new separate api to handle it.
 } OrtTensorRTProviderOptions;
 
-/** \brief TensorRT Provider Options
- *
- * \see OrtApi::SessionOptionsAppendExecutionProvider_TensorRT
- */
-typedef struct OrtNvProviderOptions {
-  int device_id;                                ///< CUDA device id (0 = default device)
-  int has_user_compute_stream;                  // indicator of user specified CUDA compute stream.
-  void* user_compute_stream;                    // user specified CUDA compute stream.
-  int nv_max_partition_iterations;             // maximum iterations for TensorRT parser to get capability
-  int nv_min_subgraph_size;                    // minimum size of TensorRT subgraphs
-  size_t nv_max_workspace_size;                // maximum workspace size for TensorRT.
-  int nv_fp16_enable;                          // enable TensorRT FP16 precision. Default 0 = false, nonzero = true
-  int nv_int8_enable;                          // enable TensorRT INT8 precision. Default 0 = false, nonzero = true
-  const char* nv_int8_calibration_table_name;  // TensorRT INT8 calibration table name.
-  int nv_int8_use_native_calibration_table;    // use native TensorRT generated calibration table. Default 0 = false, nonzero = true
-  int nv_dla_enable;                           // enable DLA. Default 0 = false, nonzero = true
-  int nv_dla_core;                             // DLA core number. Default 0
-  int nv_dump_subgraphs;                       // dump nv subgraph. Default 0 = false, nonzero = true
-  int nv_engine_cache_enable;                  // enable engine caching. Default 0 = false, nonzero = true
-  const char* nv_engine_cache_path;            // specify engine cache path
-  int nv_engine_decryption_enable;             // enable engine decryption. Default 0 = false, nonzero = true
-  const char* nv_engine_decryption_lib_path;   // specify engine decryption library path
-  int nv_force_sequential_engine_build;        // force building TensorRT engine sequentially. Default 0 = false, nonzero = true
-  // This is the legacy struct and don't add new fields here.
-  // For new field that can be represented by string, please add it in include/onnxruntime/core/providers/tensorrt/tensorrt_provider_options.h
-  // For non-string field, need to create a new separate api to handle it.
-} OrtNvProviderOptions;
 
 /** \brief MIGraphX Provider Options
  *
@@ -4816,120 +4789,32 @@ struct OrtApi {
   ORT_API2_STATUS(SetEpDynamicOptions, _Inout_ OrtSession* sess, _In_reads_(kv_len) const char* const* keys,
                   _In_reads_(kv_len) const char* const* values, _In_ size_t kv_len);
 
-  /** \brief Append TensorRT provider to session options
-   *
-   * If TensorRT is not available (due to a non TensorRT enabled build, or if TensorRT is not installed on the system), this function will return failure.
-   *
-   * \param[in] options
-   * \param[in] tensorrt_options
-   *
-   * \snippet{doc} snippets.dox OrtStatus Return Value
-   */
-  ORT_API2_STATUS(SessionOptionsAppendExecutionProvider_Nv,
+
+ORT_API2_STATUS(SessionOptionsAppendExecutionProvider_Nv,
     _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptions* nv_options);
 
 
-  /// @}
-  /// \name OrtSessionOptions
-  /// @{
+ORT_API2_STATUS(CreateNvProviderOptions, _Outptr_ OrtNvProviderOptions** out);
 
-  /** \brief Append Nv execution provider to the session options
-   *
-   * If Nv is not available (due to a non Nv enabled build), this function will return failure.
-   *
-   * This is slightly different from OrtApi::SessionOptionsAppendExecutionProvider_Nv, it takes an
-   * ::OrtNvProviderOptions which is publicly defined. This takes an opaque ::OrtNvProviderOptionsV2
-   * which must be created with OrtApi::CreateNvProviderOptions.
-   *
-   * For OrtApi::SessionOptionsAppendExecutionProvider_Nv, the user needs to instantiate ::OrtNvProviderOptions
-   * as well as allocate/release buffers for some members of ::OrtNvProviderOptions.
-   * Here, OrtApi::CreateNvProviderOptions and Ortapi::ReleaseNvProviderOptions will do the memory management for you.
-   *
-   * \param[in] options
-   * \param[in] nv_options
-   *
-   * \snippet{doc} snippets.dox OrtStatus Return Value
-   */
-  ORT_API2_STATUS(SessionOptionsAppendExecutionProvider_Nv_V2,
-    _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptionsV2* nv_options);
 
-/// @}
-/// \name OrtNvProviderOptionsV2
-/// @{
-
-/** \brief Create an OrtNvProviderOptionsV2
-*
-* \param[out] out Newly created ::OrtNvProviderOptionsV2. Must be released with OrtApi::ReleaseNvProviderOptions
-*
-* \snippet{doc} snippets.dox OrtStatus Return Value
-*/
-ORT_API2_STATUS(CreateNvProviderOptions, _Outptr_ OrtNvProviderOptionsV2** out);
-
-/** \brief Set options in a Nv Execution Provider.
-*
-* Please refer to https://onnxruntime.ai/docs/execution-providers/Nv-ExecutionProvider.html#cc
-* to know the available keys and values. Key should be in null terminated string format of the member of ::OrtNvProviderOptionsV2
-* and value should be its related range. Recreates the options and only sets the supplied values.
-*
-* For example, key="trt_max_workspace_size" and value="2147483648"
-*
-* \param[in] nv_options
-* \param[in] provider_options_keys Array of UTF-8 null-terminated string for provider options keys
-* \param[in] provider_options_values Array of UTF-8 null-terminated string for provider options values
-* \param[in] num_keys Number of elements in the `provider_option_keys` and `provider_options_values` arrays
-*
-* \snippet{doc} snippets.dox OrtStatus Return Value
-*/
-ORT_API2_STATUS(UpdateNvProviderOptions, _Inout_ OrtNvProviderOptionsV2* nv_options,
+ORT_API2_STATUS(UpdateNvProviderOptions, _Inout_ OrtNvProviderOptions* nv_options,
     _In_reads_(num_keys) const char* const* provider_options_keys,
     _In_reads_(num_keys) const char* const* provider_options_values,
     _In_ size_t num_keys);
 
 /** \brief Get serialized Nv provider options string.
-*
-* For example, "trt_max_workspace_size=2147483648;trt_max_partition_iterations=10;trt_int8_enable=1;......"
-*
-* \param nv_options - OrtNvProviderOptionsV2 instance
-* \param allocator - a ptr to an instance of OrtAllocator obtained with OrtApi::CreateAllocator or OrtApi::GetAllocatorWithDefaultOptions
-*                      the specified allocator will be used to allocate continuous buffers for output strings and lengths.
-* \param ptr - is a UTF-8 null terminated string allocated using 'allocator'. The caller is responsible for using the same allocator to free it.
-*
-* \snippet{doc} snippets.dox OrtStatus Return Value
 */
-ORT_API2_STATUS(GetNvProviderOptionsAsString, _In_ const OrtNvProviderOptionsV2* nv_options, _Inout_ OrtAllocator* allocator, _Outptr_ char** ptr);
+ORT_API2_STATUS(GetNvProviderOptionsAsString, _In_ const OrtNvProviderOptions* nv_options, _Inout_ OrtAllocator* allocator, _Outptr_ char** ptr);
 
-/** \brief Release an ::OrtNvProviderOptionsV2
-*
-* \note This is an exception in the naming convention of other Release* functions, as the name of the method does not have the V2 suffix, but the type does
-*/
-void(ORT_API_CALL* ReleaseNvProviderOptions)(_Frees_ptr_opt_ OrtNvProviderOptionsV2* input);
 
-ORT_API2_STATUS(UpdateNvProviderOptionsWithValue, _Inout_ OrtNvProviderOptionsV2* nv_options, _In_ const char* key, _In_ void* value);
+void(ORT_API_CALL* ReleaseNvProviderOptions)(_Frees_ptr_opt_ OrtNvProviderOptions* input);
 
-/**
-* Get Nv EP provider option where its data type is pointer.
-* If the data type of the provider option can be represented by string please use GetNvProviderOptionsAsString.
-*
-* \param nv_options - OrtNvProviderOptionsV2 instance
-* \param key - Name of the provider option
-* \param ptr - A pointer to the instance that is kept by the provider option
-*
-* \since Version 1.16.
-*/
-ORT_API2_STATUS(GetNvProviderOptionsByName, _In_ const OrtNvProviderOptionsV2* nv_options, _In_ const char* key, _Outptr_ void** ptr);
+ORT_API2_STATUS(UpdateNvProviderOptionsWithValue, _Inout_ OrtNvProviderOptions* nv_options, _In_ const char* key, _In_ void* value);
 
-/**
-* Update CUDA EP provider option where its data type is pointer, for example 'user_compute_stream'.
-* If the data type of the provider option can be represented by string please use UpdateCUDAProviderOptions.
-*
-* Note: It's caller's responsibility to properly manage the lifetime of the instance pointed by this pointer.
-*
-* \param cuda_options - OrtCUDAProviderOptionsV2 instance
-* \param key - Name of the provider option
-* \param value - A pointer to the instance that will be assigned to this provider option
-*
-* \since Version 1.16.
-*/
+
+ORT_API2_STATUS(GetNvProviderOptionsByName, _In_ const OrtNvProviderOptions* nv_options, _In_ const char* key, _Outptr_ void** ptr);
+
+
 };
 
 /*
@@ -5089,14 +4974,6 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Dnnl, _In_ OrtSessionOpt
  * \param device_id CUDA device id, starts from zero.
  */
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtSessionOptions* options, int device_id);
-
-/*
- * This is the old way to add the Nv provider to the session, please use SessionOptionsAppendExecutionProvider_Nv_V2 above to access the latest functionality
- * This function always exists, but will only succeed if Onnxruntime was built with Nv support and the Nv provider shared library exists
- *
- * \param device_id CUDA device id, starts from zero.
- */
-ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Nv, _In_ OrtSessionOptions* options, int device_id);
 
 
 #ifdef __cplusplus

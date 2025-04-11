@@ -2147,8 +2147,8 @@ TEST(CApiTest, io_binding_cuda) {
   Ort::SessionOptions session_options;
 #ifdef USE_TENSORRT
   Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Tensorrt(session_options, 0));
-#elif USE_NV
-  Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_NV(session_options, 0));
+// #elif USE_NV
+//   // Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Nv(session_options, 0));
 #else
   OrtCUDAProviderOptionsV2* options;
   Ort::ThrowOnError(Ort::GetApi().CreateCUDAProviderOptions(&options));
@@ -2347,21 +2347,21 @@ TEST(CApiTest, io_binding_qnn_htp_shared) {
 
 #endif  // defined(USE_QNN)
 
-#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_DML) || define(NV_EP)
+#if defined(USE_CUDA) || defined(USE_TENSORRT) || defined(USE_ROCM) || defined(USE_DML) || defined(NV_EP)
 TEST(CApiTest, basic_cuda_graph) {
   const auto& api = Ort::GetApi();
   Ort::SessionOptions session_options;
 #if defined(USE_NV)
   // Enable cuda graph in TRT provider option.
-  OrtNvProviderOptionsV2* trt_options;
+  OrtNvProviderOptions* trt_options;
   ASSERT_TRUE(api.CreateNvProviderOptions(&trt_options) == nullptr);
-  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+  std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)>
       rel_trt_options(trt_options, api.ReleaseNvProviderOptions);
   std::vector<const char*> keys{"trt_cuda_graph_enable"};
   std::vector<const char*> values{"1"};
   ASSERT_TRUE(api.UpdateNvProviderOptions(rel_trt_options.get(), keys.data(), values.data(), keys.size()) == nullptr);
 
-  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv(
                   static_cast<OrtSessionOptions*>(session_options),
                   rel_trt_options.get()) == nullptr);
 
@@ -3707,9 +3707,9 @@ TEST(NvExecutionProviderTest, ShapeTensorTest) {
 
   // Test input tensor which is shape tensor with explicit trt profile shapes
   Ort::SessionOptions session_options;
-  OrtNvProviderOptionsV2* nv_options;
+  OrtNvProviderOptions* nv_options;
   ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
-  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+  std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)>
       rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
 
   const char* nv_profile_min_shapes = "data:2x2,shape:4x1";
@@ -3718,7 +3718,7 @@ TEST(NvExecutionProviderTest, ShapeTensorTest) {
   std::vector<const char*> keys{"nv_profile_min_shapes", "nv_profile_max_shapes", "nv_profile_opt_shapes"};
   std::vector<const char*> values{nv_profile_min_shapes, nv_profile_max_shapes, nv_profile_opt_shapes};
   ASSERT_TRUE(api.UpdateNvProviderOptions(rel_nv_options.get(), keys.data(), values.data(), keys.size()) == nullptr);
-  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv(
                   static_cast<OrtSessionOptions*>(session_options),
                   rel_nv_options.get()) == nullptr);
 
@@ -3743,11 +3743,11 @@ TEST(NvExecutionProviderTest, ShapeTensorTest) {
 
   // Test input tensor which is shape tensor with implicit trt profile shapes
   Ort::SessionOptions session_options_2;
-  OrtNvProviderOptionsV2* nv_options_2;
+  OrtNvProviderOptions* nv_options_2;
   ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options_2) == nullptr);
-  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+  std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)>
       rel_nv_options_2(nv_options_2, api.ReleaseNvProviderOptions);
-  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv(
                   static_cast<OrtSessionOptions*>(session_options_2),
                   rel_nv_options_2.get()) == nullptr);
   Ort::Session session_2(*ort_env, model_path, session_options_2);
@@ -3758,9 +3758,9 @@ TEST(CApiTest, TestExternalCUDAStreamWithIOBinding) {
   const auto& api = Ort::GetApi();
   Ort::SessionOptions session_options;
 
-  OrtNvProviderOptionsV2* nv_options;
+  OrtNvProviderOptions* nv_options;
   ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
-  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)>
+  std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)>
       rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
 
   // updating provider option with user provided compute stream
@@ -3771,7 +3771,7 @@ TEST(CApiTest, TestExternalCUDAStreamWithIOBinding) {
   ASSERT_TRUE(api.GetNvProviderOptionsByName(rel_nv_options.get(), "user_compute_stream", &user_compute_stream) == nullptr);
   ASSERT_TRUE(user_compute_stream == (void*)compute_stream);
 
-  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv(
                   static_cast<OrtSessionOptions*>(session_options),
                   rel_nv_options.get()) == nullptr);
 
@@ -3891,11 +3891,11 @@ TEST_P(CApiNvTest, TestConfigureNvProviderOptions) {
   ASSERT_NE(pos, std::string::npos);
 
   const auto& api = Ort::GetApi();
-  OrtNvProviderOptionsV2* nv_options;
+  OrtNvProviderOptions* nv_options;
   OrtAllocator* allocator;
   char* nv_options_str;
   ASSERT_TRUE(api.CreateNvProviderOptions(&nv_options) == nullptr);
-  std::unique_ptr<OrtNvProviderOptionsV2, decltype(api.ReleaseNvProviderOptions)> rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
+  std::unique_ptr<OrtNvProviderOptions, decltype(api.ReleaseNvProviderOptions)> rel_nv_options(nv_options, api.ReleaseNvProviderOptions);
 
   const char* engine_cache_path = "./nv_engine_folder";
 
@@ -3915,7 +3915,7 @@ TEST_P(CApiNvTest, TestConfigureNvProviderOptions) {
   ASSERT_TRUE(api.AllocatorFree(allocator, (void*)nv_options_str) == nullptr);
 
   Ort::SessionOptions session_options;
-  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv_V2(static_cast<OrtSessionOptions*>(session_options), rel_nv_options.get()) == nullptr);
+  ASSERT_TRUE(api.SessionOptionsAppendExecutionProvider_Nv(static_cast<OrtSessionOptions*>(session_options), rel_nv_options.get()) == nullptr);
 
   // simple inference test
   // prepare inputs

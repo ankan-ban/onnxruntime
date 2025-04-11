@@ -64,7 +64,7 @@ struct NvExecutionProviderInfo {
 
   static NvExecutionProviderInfo FromProviderOptions(const ProviderOptions& options);
   static ProviderOptions ToProviderOptions(const NvExecutionProviderInfo& info);
-  static ProviderOptions ToProviderOptions(const OrtNvProviderOptionsV2& info);
+  static ProviderOptions ToProviderOptions(const OrtNvProviderOptions& info);
   static void UpdateProviderOptions(void* provider_options, const ProviderOptions& options, bool string_copy);
 
   std::vector<OrtCustomOpDomain*> custom_op_domain_list;

@@ -125,12 +125,12 @@ void ParseExecutionProviders(const Napi::Array epList, Ort::SessionOptions& sess
       sessionOptions.AppendExecutionProvider_TensorRT_V2(*options);
       Ort::GetApi().ReleaseTensorRTProviderOptions(options);
 #endif
-#ifdef USE_TENSORRT
+#ifdef USE_NV
     } else if (name == "nv") {
-      OrtNvProviderOptionsV2* options;
+      OrtNvProviderOptions* options;
       Ort::GetApi().CreateNvProviderOptions(&options);
       options->device_id = deviceId;
-      sessionOptions.AppendExecutionProvider_Nv_V2(*options);
+      sessionOptions.AppendExecutionProviderNv(*options);
       Ort::GetApi().ReleaseNvProviderOptions(options);
 #endif
 #ifdef USE_DML

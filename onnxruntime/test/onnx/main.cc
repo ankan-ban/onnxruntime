@@ -484,20 +484,20 @@ int real_main(int argc, char* argv[], Ort::Env& env) {
 #endif
     }
     if (enable_nv) {
-      #ifdef USE_NV
-            Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Nv(sf, device_id));
-      #ifdef USE_CUDA
-            OrtCUDAProviderOptionsV2 cuda_options;
-            cuda_options.device_id = device_id;
-            cuda_options.do_copy_in_default_stream = true;
-            cuda_options.use_tf32 = false;
-            // TODO: Support arena configuration for users of test runner
-            sf.AppendExecutionProvider_CUDA_V2(cuda_options);
-      #endif
-      #else
-            fprintf(stderr, "Nv is not supported in this build");
-            return -1;
-      #endif
+      // #ifdef USE_NV
+      //       Ort::ThrowOnError(OrtSessionOptionsAppendExecutionProvider_Nv(sf, device_id));
+      // #ifdef USE_CUDA
+      //       OrtCUDAProviderOptionsV2 cuda_options;
+      //       cuda_options.device_id = device_id;
+      //       cuda_options.do_copy_in_default_stream = true;
+      //       cuda_options.use_tf32 = false;
+      //       // TODO: Support arena configuration for users of test runner
+      //       sf.AppendExecutionProvider_CUDA_V2(cuda_options);
+      // #endif
+      // #else
+      //       fprintf(stderr, "Nv is not supported in this build");
+      //       return -1;
+      // #endif
     }
     if (enable_openvino) {
 #ifdef USE_OPENVINO

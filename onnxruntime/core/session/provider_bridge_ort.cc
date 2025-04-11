@@ -121,6 +121,10 @@ using EtwRegistrationManager_EtwInternalCallback = EtwRegistrationManager::EtwIn
 #include "core/session/onnxruntime_session_options_config_keys.h"
 #endif
 
+#ifdef USE_NV
+#include "core/providers/nv/nv_provider_options_internal.h"
+#endif
+
 // The filename extension for a shared library is different per platform
 #ifdef _WIN32
 #define LIBRARY_PREFIX
@@ -1939,53 +1943,6 @@ OrtTensorRTProviderOptionsV2 OrtTensorRTProviderOptionsToOrtTensorRTProviderOpti
 
   return trt_options_converted;
 }
-OrtNvProviderOptionsV2 OrtNvProviderOptionsToOrtNvProviderOptionsV2(const OrtNvProviderOptions* legacy_nv_options) {
-  OrtNvProviderOptionsV2 nv_options_converted;
-
-  nv_options_converted.device_id = legacy_nv_options->device_id;
-  nv_options_converted.has_user_compute_stream = legacy_nv_options->has_user_compute_stream;
-  nv_options_converted.user_compute_stream = legacy_nv_options->user_compute_stream;
-  nv_options_converted.nv_max_partition_iterations = legacy_nv_options->nv_max_partition_iterations;
-  nv_options_converted.nv_min_subgraph_size = legacy_nv_options->nv_min_subgraph_size;
-  nv_options_converted.nv_max_workspace_size = legacy_nv_options->nv_max_workspace_size;
-  nv_options_converted.nv_fp16_enable = legacy_nv_options->nv_fp16_enable;
-  nv_options_converted.nv_int8_enable = legacy_nv_options->nv_int8_enable;
-  nv_options_converted.nv_int8_calibration_table_name = legacy_nv_options->nv_int8_calibration_table_name;
-  nv_options_converted.nv_int8_use_native_calibration_table = legacy_nv_options->nv_int8_use_native_calibration_table;
-  nv_options_converted.nv_dla_enable = legacy_nv_options->nv_dla_enable;
-  nv_options_converted.nv_dla_core = legacy_nv_options->nv_dla_core;
-  nv_options_converted.nv_dump_subgraphs = legacy_nv_options->nv_dump_subgraphs;
-  nv_options_converted.nv_engine_cache_enable = legacy_nv_options->nv_engine_cache_enable;
-  nv_options_converted.nv_engine_cache_path = legacy_nv_options->nv_engine_cache_path;
-  nv_options_converted.nv_engine_decryption_enable = legacy_nv_options->nv_engine_decryption_enable;
-  nv_options_converted.nv_engine_decryption_lib_path = legacy_nv_options->nv_engine_decryption_lib_path;
-  nv_options_converted.nv_force_sequential_engine_build = legacy_nv_options->nv_force_sequential_engine_build;
-  // Add new provider option below
-  // Use default value as this field is not available in OrtNvProviderOptions
-  nv_options_converted.nv_timing_cache_enable = 0;
-  nv_options_converted.nv_force_timing_cache = 0;
-  nv_options_converted.nv_detailed_build_log = 0;
-  nv_options_converted.nv_context_memory_sharing_enable = 0;
-  nv_options_converted.nv_layer_norm_fp32_fallback = 0;
-  nv_options_converted.nv_build_heuristics_enable = 0;
-  nv_options_converted.nv_sparsity_enable = 0;
-  nv_options_converted.nv_builder_optimization_level = 3;
-  nv_options_converted.nv_auxiliary_streams = -1;
-  nv_options_converted.nv_tactic_sources = "";
-  nv_options_converted.nv_extra_plugin_lib_paths = "";
-  nv_options_converted.nv_profile_min_shapes = "";
-  nv_options_converted.nv_profile_max_shapes = "";
-  nv_options_converted.nv_profile_opt_shapes = "";
-  nv_options_converted.nv_cuda_graph_enable = 0;
-  nv_options_converted.nv_dump_ep_context_model = 0;
-  nv_options_converted.nv_ep_context_file_path = "";
-  nv_options_converted.nv_ep_context_embed_mode = 0;
-  nv_options_converted.nv_engine_cache_prefix = "";
-  nv_options_converted.nv_engine_hw_compatible = 0;
-
-  return nv_options_converted;
-}
-
 std::shared_ptr<IExecutionProviderFactory> TensorrtProviderFactoryCreator::Create(int device_id) {
   return s_library_tensorrt.Get().CreateExecutionProviderFactory(device_id);
 }
@@ -2003,12 +1960,8 @@ std::shared_ptr<IExecutionProviderFactory> NvProviderFactoryCreator::Create(int 
   return s_library_nv.Get().CreateExecutionProviderFactory(device_id);
 }
 
-std::shared_ptr<IExecutionProviderFactory> NvProviderFactoryCreator::Create(const OrtNvProviderOptions* provider_options) {
-  OrtNvProviderOptionsV2 trt_options_converted = onnxruntime::OrtNvProviderOptionsToOrtNvProviderOptionsV2(provider_options);
-  return s_library_nv.Get().CreateExecutionProviderFactory(&trt_options_converted);
-}
 
-std::shared_ptr<IExecutionProviderFactory> NvProviderFactoryCreator::Create(const OrtNvProviderOptionsV2* provider_options) {
+std::shared_ptr<IExecutionProviderFactory> NvProviderFactoryCreator::Create(const OrtNvProviderOptions* provider_options) {
   return s_library_nv.Get().CreateExecutionProviderFactory(provider_options);
 }
 
@@ -2103,7 +2056,7 @@ ProviderInfo_TensorRT& GetProviderInfo_TensorRT() {
   ORT_THROW("TensorRT Provider not available, can't get interface for it");
 }
 ProviderInfo_Nv* TryGetProviderInfo_Nv() try {
-  return reinterpret_cast<ProviderInfo_Nv*>(s_library_tensorrt.Get().GetInfo());
+  return reinterpret_cast<ProviderInfo_Nv*>(s_library_nv.Get().GetInfo());
 } catch (const std::exception& exception) {
   LOGS_DEFAULT(ERROR) << exception.what();
   return nullptr;
@@ -2256,11 +2209,11 @@ void UpdateProviderInfo_Tensorrt(OrtTensorRTProviderOptionsV2* provider_options,
 ProviderOptions GetProviderInfo_Tensorrt(const OrtTensorRTProviderOptionsV2* provider_options) {
   return s_library_tensorrt.Get().GetProviderOptions(reinterpret_cast<const void*>(provider_options));
 }
-void UpdateProviderInfo_Nv(OrtNvProviderOptionsV2* provider_options, const ProviderOptions& options) {
+void UpdateProviderInfo_Nv(OrtNvProviderOptions* provider_options, const ProviderOptions& options) {
   s_library_nv.Get().UpdateProviderOptions(reinterpret_cast<void*>(provider_options), options);
 }
 
-ProviderOptions GetProviderInfo_Nv(const OrtNvProviderOptionsV2* provider_options) {
+ProviderOptions GetProviderInfo_Nv(const OrtNvProviderOptions* provider_options) {
   return s_library_nv.Get().GetProviderOptions(reinterpret_cast<const void*>(provider_options));
 }
 
@@ -2339,15 +2292,6 @@ ORT_API_STATUS_IMPL(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtS
   API_IMPL_END
 }
 
-ORT_API_STATUS_IMPL(OrtSessionOptionsAppendExecutionProvider_Nv, _In_ OrtSessionOptions* options, int device_id) {
-  API_IMPL_BEGIN
-  OrtNvProviderOptionsV2 nv_options;
-  nv_options.device_id = device_id;
-  return OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2(options, &nv_options);
-  API_IMPL_END
-}
-
-
 ORT_API_STATUS_IMPL(OrtSessionOptionsAppendExecutionProvider_MIGraphX, _In_ OrtSessionOptions* options, int device_id) {
   API_IMPL_BEGIN
   auto factory = onnxruntime::MIGraphXProviderFactoryCreator::Create(device_id);
@@ -2367,12 +2311,7 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_TensorRT, _In
   API_IMPL_END
 }
 
-ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv, _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptions* nv_options) {
-  API_IMPL_BEGIN
-  OrtNvProviderOptionsV2 nv_options_converted = onnxruntime::OrtNvProviderOptionsToOrtNvProviderOptionsV2(nv_options);
-  return OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2(options, &nv_options_converted);
-  API_IMPL_END
-}
+
 
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_MIGraphX, _In_ OrtSessionOptions* options, _In_ const OrtMIGraphXProviderOptions* migraphx_options) {
   API_IMPL_BEGIN
@@ -2725,76 +2664,31 @@ ORT_API(void, OrtApis::ReleaseTensorRTProviderOptions, _Frees_ptr_opt_ OrtTensor
 }
 
 
-ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2, _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptionsV2* nv_options) {
+ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_Nv, _In_ OrtSessionOptions* options, _In_ const OrtNvProviderOptions* nv_options) {
   API_IMPL_BEGIN
 
   std::shared_ptr<onnxruntime::IExecutionProviderFactory> factory;
 
-#if !defined(ORT_MINIMAL_BUILD) && defined(USE_NV)
-  auto ep_context_cache_enabled_from_provider_options = nv_options->nv_dump_ep_context_model != 0;
-  auto ep_context_cache_enabled_from_sess_options = (options->value).config_options.GetConfigOrDefault(kOrtSessionOptionEpContextEnable, "0") != "0";
-
-  // If EP context configs are provided in session options, we need to propagate them to provider options. However,
-  // if provider options already have the EP context configs provided, the configs in session options will be ignored
-  // since provider options has higher priority than session options.
-  if (!ep_context_cache_enabled_from_provider_options && ep_context_cache_enabled_from_sess_options) {
-    // This function might need to update the "const" OrtNvProviderOptionsV2 object which can't be modified.
-    // Therefore, we need to create a new OrtNvProviderOptionsV2 object and copy from nv_options and use this new object to create the factory instead.
-    // Note: No need to worry about new_nv_options being a local variable, CreateExecutionProviderFactory() in TRT EP will
-    // create a factory object that copies any provider options from nv_options including "const char*" provider options.
-    OrtNvProviderOptionsV2 new_nv_options = *nv_options;  // copy and assign from nv_options
-
-    // Update provider options from session options. Curretnly only EPContext related session options are supported.
-    // Note: The string-based local variables will be kept accessible during the lifetime of this function,
-    // therefore the "const char*" provider options can still be accessible when calling CreateExecutionProviderFactory() in TRT EP.
-    bool context_cache_enabled = false;
-    std::string context_cache_path = "";
-    std::string embed_mode = "";
-    if (options) {
-      context_cache_enabled = (options->value).config_options.GetConfigOrDefault(kOrtSessionOptionEpContextEnable, "0") != "0";
-      new_nv_options.nv_dump_ep_context_model = context_cache_enabled;
-      LOGS_DEFAULT(VERBOSE) << "Context cache enable: " << context_cache_enabled;
-
-      context_cache_path = (options->value).config_options.GetConfigOrDefault(kOrtSessionOptionEpContextFilePath, "");
-      new_nv_options.nv_ep_context_file_path = (context_cache_path.size() == 0) ? nullptr : context_cache_path.c_str();
-      LOGS_DEFAULT(VERBOSE) << "User specified context cache path: " << context_cache_path;
-
-      embed_mode = (options->value).config_options.GetConfigOrDefault(kOrtSessionOptionEpContextEmbedMode, "0");
-      if ("1" == embed_mode) {
-        new_nv_options.nv_ep_context_embed_mode = 1;
-      } else if ("0" == embed_mode) {
-        new_nv_options.nv_ep_context_embed_mode = 0;
-      } else {
-        LOGS_DEFAULT(VERBOSE) << "Invalid ep.context_embed_mode: " << embed_mode << " only 0 or 1 allowed. Set to 1.";
-      }
-      LOGS_DEFAULT(VERBOSE) << "User specified context cache embed mode: " << embed_mode;
-    }
-    factory = onnxruntime::NvProviderFactoryCreator::Create(&new_nv_options);
-  } else {
-    factory = onnxruntime::NvProviderFactoryCreator::Create(nv_options);
-  }
-#else
   factory = onnxruntime::NvProviderFactoryCreator::Create(nv_options);
-#endif
 
   if (!factory) {
-    return OrtApis::CreateStatus(ORT_FAIL, "OrtSessionOptionsAppendExecutionProvider_Nv: Failed to load shared library");
+    return OrtApis::CreateStatus(ORT_FAIL, "SessionOptionsAppendExecutionProvider_Nv: Failed to load shared library");
   }
 
   options->provider_factories.push_back(factory);
 
-  std::string extra_plugin_lib_paths = (nv_options == nullptr || nv_options->nv_extra_plugin_lib_paths == nullptr) ? "" : nv_options->nv_extra_plugin_lib_paths;
+  // std::string extra_plugin_lib_paths = (nv_options == nullptr || nv_options->nv_extra_plugin_lib_paths == nullptr) ? "" : nv_options->nv_extra_plugin_lib_paths;
   //AddTensorRTCustomOpDomainToSessionOption(options, extra_plugin_lib_paths);
 
   return nullptr;
   API_IMPL_END
 }
 
-ORT_API_STATUS_IMPL(OrtApis::CreateNvProviderOptions, _Outptr_ OrtNvProviderOptionsV2** out) {
+ORT_API_STATUS_IMPL(OrtApis::CreateNvProviderOptions, _Outptr_ OrtNvProviderOptions** out) {
   API_IMPL_BEGIN
 #ifdef USE_NV
-  auto options = std::make_unique<OrtNvProviderOptionsV2>();
-  *out = options.release();
+  onnxruntime::ProviderInfo_Nv& provider_info = onnxruntime::GetProviderInfo_Nv();
+  provider_info.CreateProviderOptions(out);
   return nullptr;
 #else
   ORT_UNUSED_PARAMETER(out);
@@ -2804,7 +2698,7 @@ ORT_API_STATUS_IMPL(OrtApis::CreateNvProviderOptions, _Outptr_ OrtNvProviderOpti
 }
 
 ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptions,
-                    _Inout_ OrtNvProviderOptionsV2* nv_options,
+                    _Inout_ OrtNvProviderOptions* nv_options,
                     _In_reads_(num_keys) const char* const* provider_options_keys,
                     _In_reads_(num_keys) const char* const* provider_options_values,
                     size_t num_keys) {
@@ -2833,7 +2727,7 @@ ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptions,
   API_IMPL_END
 }
 
-ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsAsString, _In_ const OrtNvProviderOptionsV2* nv_options, _Inout_ OrtAllocator* allocator,
+ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsAsString, _In_ const OrtNvProviderOptions* nv_options, _Inout_ OrtAllocator* allocator,
                     _Outptr_ char** ptr) {
   API_IMPL_BEGIN
 #ifdef USE_NV
@@ -2851,21 +2745,21 @@ ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsAsString, _In_ const OrtNvProvi
 }
 
 ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptionsWithValue,
-                    _Inout_ OrtNvProviderOptionsV2* nv_options,
+                    _Inout_ OrtNvProviderOptions* nv_options,
                     _In_ const char* key,
                     _In_ void* value) {
   API_IMPL_BEGIN
 #ifdef USE_NV
   // current provider option that has pointer data type (excluding const char*) is 'user_compute_stream'
-  if (strcmp(key, "user_compute_stream") == 0) {
+  if (strcmp(key, onnxruntime::nv::provider_option_names::kUserComputeStream) == 0) {
     nv_options->has_user_compute_stream = 1;
     nv_options->user_compute_stream = value;
-  } else if (strcmp(key, "nv_onnx_bytestream") == 0) {
-    nv_options->nv_onnx_bytestream = value;
-  } else if (strcmp(key, "nv_onnx_bytestream_size") == 0) {
-    nv_options->nv_onnx_bytestream_size = *reinterpret_cast<size_t*>(value);
+  } else if (strcmp(key, onnxruntime::nv::provider_option_names::kONNXBytestream) == 0) {
+    nv_options->onnx_bytestream = value;
+  } else if (strcmp(key,onnxruntime::nv::provider_option_names::kONNXBytestreamSize) == 0) {
+    nv_options->onnx_bytestream_size = *reinterpret_cast<size_t*>(value);
   }
-  return nullptr;
+   return nullptr;
 #else
   ORT_UNUSED_PARAMETER(nv_options);
   ORT_UNUSED_PARAMETER(key);
@@ -2876,17 +2770,17 @@ ORT_API_STATUS_IMPL(OrtApis::UpdateNvProviderOptionsWithValue,
 }
 
 ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsByName,
-                    _In_ const OrtNvProviderOptionsV2* nv_options,
-                    _In_ const char* key,
+                    _In_ const OrtNvProviderOptions* /*nv_options*/,
+                    _In_ const char* /*key*/,
                     _Outptr_ void** ptr) {
   API_IMPL_BEGIN
 #ifdef USE_NV
   // current provider option that has pointer data type (excluding const char*) is 'user_compute_stream'
-  if (strcmp(key, "user_compute_stream") == 0) {
-    *ptr = nv_options->user_compute_stream;
-  } else {
+  // if (strcmp(key, "user_compute_stream") == 0) {
+  //   *ptr = nv_options->user_compute_stream;
+  // } else {
     *ptr = nullptr;
-  }
+  // }
   return nullptr;
 #else
   ORT_UNUSED_PARAMETER(nv_options);
@@ -2897,25 +2791,11 @@ ORT_API_STATUS_IMPL(OrtApis::GetNvProviderOptionsByName,
   API_IMPL_END
 }
 
-ORT_API(void, OrtApis::ReleaseNvProviderOptions, _Frees_ptr_opt_ OrtNvProviderOptionsV2* ptr) {
+ORT_API(void, OrtApis::ReleaseNvProviderOptions, _Frees_ptr_opt_ OrtNvProviderOptions* ptr) {
 #ifdef USE_NV
-  if (ptr != nullptr) {
-    delete[] ptr->nv_int8_calibration_table_name;
-    delete[] ptr->nv_engine_cache_path;
-    delete[] ptr->nv_engine_cache_prefix;
-    delete[] ptr->nv_timing_cache_path;
-    delete[] ptr->nv_engine_decryption_lib_path;
-    delete[] ptr->nv_tactic_sources;
-    delete[] ptr->nv_extra_plugin_lib_paths;
-    delete[] ptr->nv_profile_min_shapes;
-    delete[] ptr->nv_profile_max_shapes;
-    delete[] ptr->nv_profile_opt_shapes;
-    delete[] ptr->nv_ep_context_file_path;
-    delete[] ptr->nv_onnx_model_folder_path;
-    delete[] ptr->nv_op_types_to_exclude;
-  }
+onnxruntime::ProviderInfo_Nv& provider_info = onnxruntime::GetProviderInfo_Nv();
+provider_info.ReleaseProviderOptions(ptr);
 
-  std::unique_ptr<OrtNvProviderOptionsV2> p(ptr);
 #else
   ORT_UNUSED_PARAMETER(ptr);
 #endif

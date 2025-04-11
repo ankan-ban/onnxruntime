@@ -1582,15 +1582,15 @@ NvExecutionProvider::NvExecutionProvider(const NvExecutionProviderInfo& info)
 
   // Validate setting
   if (max_partition_iterations_ <= 0) {
-    LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option trt_max_partition_iterations must be a positive integer value. Set it to 1000";
+    // LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option nv_max_partition_iterations must be a positive integer value. Set it to 1000";
     max_partition_iterations_ = 1000;
   }
   if (min_subgraph_size_ <= 0) {
-    LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option trt_min_subgraph_size must be a positive integer value. Set it to 1";
+    // LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option nv_min_subgraph_size must be a positive integer value. Set it to 1";
     min_subgraph_size_ = 1;
   }
   if (dla_core_ < 0) {
-    LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option trt_dla_core must be a non-negative integer value. Set it to 0";
+    // LOGS_DEFAULT(WARNING) << "[Nv EP] TensorRT option nv_dla_core must be a non-negative integer value. Set it to 0";
     dla_core_ = 0;
   }
 
@@ -2280,7 +2280,7 @@ SubGraphCollection_t NvExecutionProvider::GetSupportedList(SubGraphCollection_t 
 #if NV_TENSORRT_MAJOR > 8
         network_flags |= fp16_enable_ || int8_enable_ ? 0 : 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
 #endif
-        network_flags |= 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+        // network_flags |= 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
 
         auto trt_network = std::unique_ptr<nvinfer1::INetworkDefinition>(trt_builder->createNetworkV2(network_flags));
         auto trt_parser = tensorrt_ptr::unique_pointer<nvonnxparser::IParser>(nvonnxparser::createParser(*trt_network, trt_logger));
@@ -2840,7 +2840,7 @@ Status NvExecutionProvider::CreateNodeComputeInfoFromGraph(const GraphViewer& gr
 #if NV_TENSORRT_MAJOR > 8
   network_flags |= fp16_enable_ || int8_enable_ ? 0 : 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
 #endif
-  network_flags |= 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+  // network_flags |= 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   auto trt_network = std::unique_ptr<nvinfer1::INetworkDefinition>(trt_builder->createNetworkV2(network_flags));
   auto trt_config = std::unique_ptr<nvinfer1::IBuilderConfig>(trt_builder->createBuilderConfig());
   auto trt_parser = tensorrt_ptr::unique_pointer<nvonnxparser::IParser>(nvonnxparser::createParser(*trt_network, trt_logger));

@@ -2814,7 +2814,6 @@ static constexpr OrtApi ort_api_1_to_21 = {
     // End of Version 20 - DO NOT MODIFY ABOVE (see above text for more information)
 
     &OrtApis::SessionOptionsAppendExecutionProvider_Nv,
-    &OrtApis::SessionOptionsAppendExecutionProvider_Nv_V2,
     &OrtApis::CreateNvProviderOptions,
     &OrtApis::UpdateNvProviderOptions,
     &OrtApis::GetNvProviderOptionsAsString,
